@@ -5,8 +5,7 @@
  * Provides utilities for form validation and error handling
  * using React Hook Form and Zod schemas.
  */
-
-import { FieldValues, Path, UseFormReturn } from 'react-hook-form';
+import { FieldValues, Path, UseFormReturn, FieldError } from 'react-hook-form';
 import { ZodError } from 'zod';
 
 /**
@@ -28,8 +27,8 @@ export function getFieldError<T extends FieldValues>(
   form: UseFormReturn<T>,
   field: Path<T>
 ): string | undefined {
-  const error = form.formState.errors[field];
-  return error?.message as string | undefined;
+  const error = form.formState.errors[field] as FieldError | undefined;
+  return error?.message;
 }
 
 /**
@@ -110,7 +109,7 @@ export function getFieldStateClass<T extends FieldValues>(
 /**
  * Gets ARIA attributes for a field based on its state
  * 
- * @function getFieldAriaAttrs
+ * @function getFieldAriaProps
  * @template T - Form values type
  * @param {UseFormReturn<T>} form - React Hook Form instance
  * @param {Path<T>} field - Field path
@@ -118,22 +117,20 @@ export function getFieldStateClass<T extends FieldValues>(
  * 
  * @example
  * ```tsx
- * const attrs = getFieldAriaAttrs(form, 'email');
+ * const attrs = getFieldAriaProps(form, 'email');
  * // { 'aria-invalid': true, 'aria-errormessage': 'email-error' }
  * ```
  */
-export function getFieldAriaAttrs<T extends FieldValues>(
+export function getFieldAriaProps<T extends FieldValues>(
   form: UseFormReturn<T>,
   field: Path<T>
-): Record<string, string | boolean> {
-  const hasError = hasFieldError(form, field);
+): { 'aria-invalid': boolean; 'aria-errormessage'?: string } {
   const error = getFieldError(form, field);
-  const errorId = `${field}-error`;
-
+  const errorId = error ? `${field}-error` : undefined;
+  
   return {
-    'aria-invalid': hasError,
-    'aria-errormessage': hasError ? errorId : '',
-    'aria-describedby': error ? errorId : '',
+    'aria-invalid': !!error,
+    'aria-errormessage': errorId
   };
 }
 
@@ -166,17 +163,6 @@ export function getFieldProps<T extends FieldValues>(
     id: field,
     name: field,
     className: getFieldStateClass(form, field),
-    ...getFieldAriaAttrs(form, field),
-  };
-}
-
-export function getFieldAriaProps<T extends FieldValues>(
-  form: UseFormReturn<T>,
-  field: Path<T>
-): { 'aria-invalid': boolean; 'aria-errormessage'?: string } {
-  const error = getFieldError(form, field);
-  return {
-    'aria-invalid': !!error,
-    'aria-errormessage': error || undefined
+    ...getFieldAriaProps(form, field),
   };
 } 
