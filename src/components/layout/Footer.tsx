@@ -1,5 +1,29 @@
+/**
+ * @fileoverview Application footer component with links and copyright
+ * @module components/layout/Footer
+ * @description
+ * This component provides the footer section of the application.
+ * It includes copyright information, tagline, and important links
+ * with a responsive layout for different screen sizes.
+ */
+
 import React from 'react';
 
+/**
+ * Footer component with responsive layout and navigation links
+ * 
+ * Features:
+ * - Responsive design (mobile-first)
+ * - Secondary navigation links
+ * - Copyright/tagline text
+ * - Flexible layout with centered/row arrangements
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * <Footer />
+ * ```
+ */
 export function Footer() {
   return (
     <footer className="border-t py-6 md:py-0">

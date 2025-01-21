@@ -1,10 +1,58 @@
+/**
+ * @fileoverview Dropdown menu component built with Radix UI primitives
+ * @module components/common/dropdown-menu
+ * @description
+ * A fully accessible dropdown menu component system built with Radix UI primitives.
+ * Provides a complete set of components for building custom dropdown menus with
+ * consistent styling, animations, and accessibility features.
+ */
+
 import * as React from "react";
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu";
 import { cn } from "../../utils/cn";
 
+/**
+ * Root dropdown menu component that manages menu state
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * <DropdownMenu>
+ *   <DropdownMenuTrigger>Open Menu</DropdownMenuTrigger>
+ *   <DropdownMenuContent>
+ *     <DropdownMenuItem>Item 1</DropdownMenuItem>
+ *     <DropdownMenuItem>Item 2</DropdownMenuItem>
+ *   </DropdownMenuContent>
+ * </DropdownMenu>
+ * ```
+ */
 const DropdownMenu = DropdownMenuPrimitive.Root;
+
+/**
+ * Button that triggers the dropdown menu
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * <DropdownMenuTrigger>
+ *   Click to Open
+ * </DropdownMenuTrigger>
+ * ```
+ */
 const DropdownMenuTrigger = DropdownMenuPrimitive.Trigger;
 
+/**
+ * Container for dropdown menu items with positioning and animations
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * <DropdownMenuContent>
+ *   <DropdownMenuItem>Option 1</DropdownMenuItem>
+ *   <DropdownMenuItem>Option 2</DropdownMenuItem>
+ * </DropdownMenuContent>
+ * ```
+ */
 const DropdownMenuContent = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content>
@@ -23,6 +71,17 @@ const DropdownMenuContent = React.forwardRef<
 ));
 DropdownMenuContent.displayName = DropdownMenuPrimitive.Content.displayName;
 
+/**
+ * Individual menu item component with hover and focus states
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * <DropdownMenuItem onSelect={() => console.log('Selected')}>
+ *   Menu Option
+ * </DropdownMenuItem>
+ * ```
+ */
 const DropdownMenuItem = React.forwardRef<
   React.ElementRef<typeof DropdownMenuPrimitive.Item>,
   React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Item>

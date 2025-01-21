@@ -1,3 +1,12 @@
+/**
+ * @fileoverview Form components and utilities built on react-hook-form
+ * @module components/common/form
+ * @description
+ * A comprehensive form system that integrates react-hook-form with Radix UI
+ * primitives. Provides form validation, accessibility, and consistent styling
+ * across all form elements.
+ */
+
 import * as React from "react";
 import * as LabelPrimitive from "@radix-ui/react-label";
 import { Slot } from "@radix-ui/react-slot";
@@ -15,6 +24,14 @@ import { Label } from "./label";
 
 const Form = FormProvider;
 
+/**
+ * Context value type for form field state
+ * 
+ * @interface
+ * @template TFieldValues - Type of form values
+ * @template TName - Type of field name
+ * @property {TName} name - Name of the form field
+ */
 type FormFieldContextValue<
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
@@ -26,6 +43,29 @@ const FormFieldContext = React.createContext<FormFieldContextValue>(
   {} as FormFieldContextValue
 );
 
+/**
+ * Form field component that provides field context and validation
+ * 
+ * @component
+ * @template TFieldValues - Type of form values
+ * @template TName - Type of field name
+ * 
+ * @example
+ * ```tsx
+ * <FormField
+ *   control={form.control}
+ *   name="email"
+ *   render={({ field }) => (
+ *     <FormItem>
+ *       <FormLabel>Email</FormLabel>
+ *       <FormControl>
+ *         <Input {...field} />
+ *       </FormControl>
+ *     </FormItem>
+ *   )}
+ * />
+ * ```
+ */
 const FormField = <
   TFieldValues extends FieldValues = FieldValues,
   TName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>
@@ -39,6 +79,18 @@ const FormField = <
   );
 };
 
+/**
+ * Hook to access form field context and state
+ * 
+ * @hook
+ * @returns {Object} Field state and metadata
+ * @throws {Error} If used outside of FormField context
+ * 
+ * @example
+ * ```tsx
+ * const { error, formItemId } = useFormField();
+ * ```
+ */
 const useFormField = () => {
   const fieldContext = React.useContext(FormFieldContext);
   const itemContext = React.useContext(FormItemContext);
@@ -62,6 +114,12 @@ const useFormField = () => {
   };
 };
 
+/**
+ * Context value type for form item state
+ * 
+ * @interface
+ * @property {string} id - Unique identifier for the form item
+ */
 type FormItemContextValue = {
   id: string;
 };
@@ -70,6 +128,22 @@ const FormItemContext = React.createContext<FormItemContextValue>(
   {} as FormItemContextValue
 );
 
+/**
+ * Container component for form field elements
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * <FormItem>
+ *   <FormLabel>Username</FormLabel>
+ *   <FormControl>
+ *     <Input />
+ *   </FormControl>
+ *   <FormDescription>Enter your username</FormDescription>
+ *   <FormMessage />
+ * </FormItem>
+ * ```
+ */
 const FormItem = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
@@ -84,6 +158,15 @@ const FormItem = React.forwardRef<
 });
 FormItem.displayName = "FormItem";
 
+/**
+ * Label component for form fields
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * <FormLabel>Email address</FormLabel>
+ * ```
+ */
 const FormLabel = React.forwardRef<
   React.ElementRef<typeof LabelPrimitive.Root>,
   React.ComponentPropsWithoutRef<typeof LabelPrimitive.Root>
@@ -101,6 +184,17 @@ const FormLabel = React.forwardRef<
 });
 FormLabel.displayName = "FormLabel";
 
+/**
+ * Control component that handles form field state and accessibility
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * <FormControl>
+ *   <Input />
+ * </FormControl>
+ * ```
+ */
 const FormControl = React.forwardRef<
   React.ElementRef<typeof Slot>,
   React.ComponentPropsWithoutRef<typeof Slot>
@@ -123,6 +217,17 @@ const FormControl = React.forwardRef<
 });
 FormControl.displayName = "FormControl";
 
+/**
+ * Description component for additional form field information
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * <FormDescription>
+ *   Your password must be at least 8 characters long
+ * </FormDescription>
+ * ```
+ */
 const FormDescription = React.forwardRef<
   HTMLParagraphElement,
   React.HTMLAttributes<HTMLParagraphElement>
@@ -140,6 +245,15 @@ const FormDescription = React.forwardRef<
 });
 FormDescription.displayName = "FormDescription";
 
+/**
+ * Message component for displaying form field errors
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * <FormMessage />
+ * ```
+ */
 const FormMessage = React.forwardRef<
   HTMLParagraphElement,
   React.HTMLAttributes<HTMLParagraphElement>

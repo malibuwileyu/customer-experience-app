@@ -1,15 +1,51 @@
+/**
+ * @fileoverview Error fallback UI component
+ * @module components/common/error-fallback
+ * @description
+ * A component that provides a user-friendly error display when an error occurs.
+ * Used in conjunction with ErrorBoundary to show error details and recovery options.
+ */
+
 import * as React from "react"
 import { cn } from "../../lib/utils"
 import { Button } from "./button"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "./card"
 import { useToast } from "../../hooks/use-toast"
 
+/**
+ * Props interface for the ErrorFallback component
+ * 
+ * @interface
+ * @extends {React.HTMLAttributes<HTMLDivElement>}
+ * @property {Error} error - The error that occurred
+ * @property {() => void} resetErrorBoundary - Function to reset the error boundary
+ * @property {string} [description] - Optional custom error description
+ */
 export interface ErrorFallbackProps extends React.HTMLAttributes<HTMLDivElement> {
   error: Error
   resetErrorBoundary: () => void
   description?: string
 }
 
+/**
+ * A component that displays error information and recovery options
+ * 
+ * Features:
+ * - Displays error message in a card layout
+ * - Shows toast notification on mount
+ * - Provides refresh and retry options
+ * - Customizable error description
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * <ErrorFallback
+ *   error={new Error("Failed to load data")}
+ *   resetErrorBoundary={() => resetState()}
+ *   description="Error loading dashboard data"
+ * />
+ * ```
+ */
 const ErrorFallback = React.forwardRef<HTMLDivElement, ErrorFallbackProps>(
   ({ className, error, resetErrorBoundary, description, ...props }, ref) => {
     const { toast } = useToast()

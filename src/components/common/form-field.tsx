@@ -1,6 +1,25 @@
+/**
+ * @fileoverview Form field wrapper component with label and error handling
+ * @module components/common/form-field
+ * @description
+ * A wrapper component that provides consistent layout and styling for form fields.
+ * Handles labels, error messages, descriptions, and required field indicators.
+ * Automatically manages accessibility attributes and IDs.
+ */
+
 import * as React from "react"
 import { cn } from "../../lib/utils"
 
+/**
+ * Props interface for the FormField component
+ * 
+ * @interface
+ * @extends {React.HTMLAttributes<HTMLDivElement>}
+ * @property {string} [label] - Label text for the form field
+ * @property {string} [error] - Error message to display
+ * @property {string} [description] - Helper text to display below the field
+ * @property {boolean} [required] - Whether the field is required
+ */
 export interface FormFieldProps extends React.HTMLAttributes<HTMLDivElement> {
   label?: string
   error?: string
@@ -8,8 +27,50 @@ export interface FormFieldProps extends React.HTMLAttributes<HTMLDivElement> {
   required?: boolean
 }
 
+/**
+ * Form field wrapper component with integrated label and error handling
+ * 
+ * Features:
+ * - Automatic ID generation
+ * - Label support with required indicator
+ * - Error message display
+ * - Helper text/description
+ * - Proper ARIA attributes
+ * - Consistent spacing and layout
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * // Basic usage with input
+ * <FormField
+ *   label="Username"
+ *   description="Choose a unique username"
+ * >
+ *   <Input placeholder="Enter username" />
+ * </FormField>
+ * 
+ * // With error state
+ * <FormField
+ *   label="Email"
+ *   error="Please enter a valid email"
+ *   required
+ * >
+ *   <Input type="email" />
+ * </FormField>
+ * 
+ * // With custom styling
+ * <FormField
+ *   label="Bio"
+ *   description="Tell us about yourself"
+ *   className="max-w-sm"
+ * >
+ *   <Textarea />
+ * </FormField>
+ * ```
+ */
 const FormField = React.forwardRef<HTMLDivElement, FormFieldProps>(
   ({ className, children, label, error, description, required, ...props }, ref) => {
+    // Generate unique ID for field components
     const id = React.useId()
 
     return (

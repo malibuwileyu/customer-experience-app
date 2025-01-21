@@ -34,17 +34,6 @@
   - Component organization
   - Testing structure
 
-- [Codebase Organization Rules (codebase-organization-rules.md)](./codebase-organization-rules.md)
-  - Directory structure rules
-  - Naming conventions
-  - Import rules
-  - Component structure
-  - State management
-  - Testing organization
-  - Documentation standards
-  - Asset organization
-  - Configuration management
-
 - [Progress Tracking (steps.md)](./steps.md)
   - Completed tasks
   - Next steps
@@ -82,12 +71,107 @@
    - Component docs as TSDoc comments
    - Test specifications in `__tests__/*.spec.md`
 
+### In-File Documentation Standards
+1. File Header Documentation
+   ```typescript
+   /**
+    * @fileoverview Brief description of the file's purpose and responsibility
+    * @module path/to/module
+    * @description
+    * Detailed description of what this file does and its role in the system.
+    * Include any important notes about usage or dependencies.
+    */
+   ```
+
+2. Function/Method Documentation
+   ```typescript
+   /**
+    * Brief description of what the function does
+    * 
+    * Detailed description of the function's purpose, behavior,
+    * and any important implementation details.
+    *
+    * @param {Type} paramName - Description of the parameter
+    * @param {Type} [optionalParam] - Description of the optional parameter
+    * @returns {ReturnType} Description of the return value
+    * @throws {ErrorType} Description of when/why errors are thrown
+    *
+    * @example
+    * ```typescript
+    * const result = functionName(param1, param2);
+    * ```
+    */
+   ```
+
+3. Interface/Type Documentation
+   ```typescript
+   /**
+    * Description of what this interface/type represents
+    * 
+    * @interface or @type
+    * @property {Type} propertyName - Description of the property
+    * @property {Type} [optionalProp] - Description of the optional property
+    */
+   ```
+
+4. Component Documentation
+   ```typescript
+   /**
+    * Brief description of the component's purpose
+    * 
+    * Detailed description of the component's functionality,
+    * usage, and any important notes about implementation.
+    *
+    * @component
+    * @example
+    * ```tsx
+    * <ComponentName prop1={value1} prop2={value2} />
+    * ```
+    */
+   ```
+
+5. Documentation Rules
+   - Every file must have a file header comment
+   - Every exported function/method must be documented
+   - Every interface/type must be documented
+   - Every React component must be documented
+   - Use complete sentences ending with periods
+   - Keep descriptions concise but comprehensive
+   - Include examples for complex functionality
+   - Document all parameters, even if seemingly obvious
+   - Document thrown errors and side effects
+   - Use proper grammar and spelling
+
+6. Documentation Style
+   - Use present tense ("Returns..." not "Will return...")
+   - Be specific about types ("string" not "String")
+   - Use consistent terminology
+   - Separate logical blocks with newlines
+   - Align parameter descriptions
+   - Use proper indentation
+   - Keep line length under 80 characters
+
+7. Required Sections
+   - File header: Purpose, module, description
+   - Functions: Description, parameters, return value
+   - Components: Description, props, examples
+   - Types: Description, properties
+   - Constants: Purpose and usage
+
+8. Optional Sections (When Relevant)
+   - @see - References to related code
+   - @deprecated - Deprecation notices
+   - @since - Version introduced
+   - @example - Usage examples
+   - @throws - Error conditions
+   - @todo - Planned changes
+
 ### Test-Driven Development (TDD)
 1. Test Organization
    - Unit tests alongside source files
-   - Integration tests in `__tests__/integration/`
-   - E2E tests in `cypress/e2e/`
-   - Test utilities in `__tests__/utils/`
+   - Integration tests in `__tests__/integration`
+   - E2E tests in `cypress/e2e`
+   - Test utilities in `__tests__/utils`
 
 2. Testing Requirements
    - Unit tests for business logic
@@ -159,57 +243,6 @@
    - Passes all tests
    - No regression issues
    - Meets performance criteria
-
-### Naming Conventions
-1. Database
-   - Tables: Plural, snake_case (e.g., `user_profiles`)
-   - Columns: Singular, snake_case (e.g., `first_name`)
-   - Foreign keys: `<table_name>_id`
-   - Indexes: `idx_<table>_<column(s)>`
-
-2. Backend (Express, Node/TS)
-   - Controllers: kebab-case + `-controller.ts`
-   - Services: kebab-case + `-service.ts`
-   - Routes: kebab-case + `-routes.ts`
-   - Types: PascalCase
-   - Interfaces: PascalCase with `I` prefix
-
-3. Frontend (React/TypeScript)
-   - Components: PascalCase + `.tsx`
-   - Hooks: camelCase + `use` prefix
-   - Stores: kebab-case + `.store.ts`
-   - Types: PascalCase + `.types.ts`
-   - Services: kebab-case + `.service.ts`
-
-### Git Workflow
-1. Commit Process
-   - Check status with `git status`
-   - Stage specific files
-   - Use conventional commit format
-   - Include feature IDs
-   - Verify before push
-
-2. Commit Types
-   - `feat`: new feature
-   - `fix`: bug fix
-   - `docs`: documentation
-   - `style`: formatting
-   - `refactor`: code restructure
-   - `test`: testing changes
-   - `chore`: maintenance
-
-### Environment & Configuration
-1. Environment Variables
-   - Group by functionality
-   - Never commit secrets
-   - Maintain `.env.example`
-   - Document dependencies
-
-2. Configuration Files
-   - Avoid modifying dependent configs
-   - Document changes
-   - Follow existing patterns
-   - Version control safely
 
 ## API Documentation
 - [API Documentation Index](./api/README.md)

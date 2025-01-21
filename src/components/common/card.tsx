@@ -1,6 +1,31 @@
+/**
+ * @fileoverview Card component and its subcomponents for content organization
+ * @module components/common/card
+ * @description
+ * A flexible card component system built with Tailwind CSS.
+ * Provides a complete set of components for building card-based interfaces
+ * with consistent styling and layout.
+ */
+
 import * as React from "react"
 import { cn } from "../../lib/utils"
 
+/**
+ * Base card component that serves as a container
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * <Card>
+ *   <CardHeader>
+ *     <CardTitle>Card Title</CardTitle>
+ *     <CardDescription>Card description text</CardDescription>
+ *   </CardHeader>
+ *   <CardContent>Main content</CardContent>
+ *   <CardFooter>Footer content</CardFooter>
+ * </Card>
+ * ```
+ */
 const Card = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
@@ -16,6 +41,18 @@ const Card = React.forwardRef<
 ))
 Card.displayName = "Card"
 
+/**
+ * Header section of the card
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * <CardHeader>
+ *   <CardTitle>Title</CardTitle>
+ *   <CardDescription>Description</CardDescription>
+ * </CardHeader>
+ * ```
+ */
 const CardHeader = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
@@ -28,6 +65,15 @@ const CardHeader = React.forwardRef<
 ))
 CardHeader.displayName = "CardHeader"
 
+/**
+ * Title component for the card header
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * <CardTitle>Card Title</CardTitle>
+ * ```
+ */
 const CardTitle = React.forwardRef<
   HTMLParagraphElement,
   React.HTMLAttributes<HTMLHeadingElement>
@@ -40,6 +86,15 @@ const CardTitle = React.forwardRef<
 ))
 CardTitle.displayName = "CardTitle"
 
+/**
+ * Description component for the card header
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * <CardDescription>Additional details about the card content</CardDescription>
+ * ```
+ */
 const CardDescription = React.forwardRef<
   HTMLParagraphElement,
   React.HTMLAttributes<HTMLParagraphElement>
@@ -52,6 +107,17 @@ const CardDescription = React.forwardRef<
 ))
 CardDescription.displayName = "CardDescription"
 
+/**
+ * Main content area of the card
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * <CardContent>
+ *   <p>Main content of the card goes here</p>
+ * </CardContent>
+ * ```
+ */
 const CardContent = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
@@ -60,6 +126,17 @@ const CardContent = React.forwardRef<
 ))
 CardContent.displayName = "CardContent"
 
+/**
+ * Footer section of the card
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * <CardFooter>
+ *   <Button>Action</Button>
+ * </CardFooter>
+ * ```
+ */
 const CardFooter = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>

@@ -1,8 +1,20 @@
+/**
+ * @fileoverview Reusable button component with multiple variants and sizes
+ * @module components/common/button
+ * @description
+ * A customizable button component built with Radix UI and class-variance-authority.
+ * Supports multiple variants, sizes, and can be rendered as different elements.
+ */
+
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "../../lib/utils"
 
+/**
+ * Button variant and size configurations using class-variance-authority
+ * Defines the available visual styles and size options for the button
+ */
 const buttonVariants = cva(
   "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
   {
@@ -33,12 +45,44 @@ const buttonVariants = cva(
   }
 )
 
+/**
+ * Props interface for the Button component
+ * 
+ * @interface
+ * @extends {React.ButtonHTMLAttributes<HTMLButtonElement>}
+ * @extends {VariantProps<typeof buttonVariants>}
+ * @property {boolean} [asChild] - Whether to render the button as a child component
+ */
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean
 }
 
+/**
+ * A flexible button component with multiple style variants and size options
+ * 
+ * @component
+ * @param {ButtonProps} props - Component props
+ * @param {string} [props.variant='default'] - Visual style variant
+ * @param {string} [props.size='default'] - Size variant
+ * @param {boolean} [props.asChild=false] - Whether to render as child component
+ * @param {string} [props.className] - Additional CSS classes
+ * 
+ * @example
+ * ```tsx
+ * // Default button
+ * <Button>Click me</Button>
+ * 
+ * // Destructive variant with large size
+ * <Button variant="destructive" size="lg">Delete</Button>
+ * 
+ * // As child component
+ * <Button asChild>
+ *   <Link href="/somewhere">Navigate</Link>
+ * </Button>
+ * ```
+ */
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, ...props }, ref) => {
     const Comp = asChild ? Slot : "button"

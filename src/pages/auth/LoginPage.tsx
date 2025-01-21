@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -24,9 +24,12 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 
 export function LoginPage() {
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnUrl = (location.state as { from?: string })?.from || '/app/dashboard';
   const [error, setError] = useState<string | null>(null);
+  
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -36,11 +39,18 @@ export function LoginPage() {
     mode: 'onChange',
   });
 
+  // Redirect if already logged in
+  useEffect(() => {
+    if (user) {
+      navigate('/app/dashboard', { replace: true });
+    }
+  }, [user, navigate]);
+
   const onSubmit = async (data: LoginFormData) => {
     try {
       setError(null);
       await login(data);
-      navigate('/dashboard');
+      navigate(returnUrl, { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Invalid credentials');
       form.setError('root', {

@@ -1,8 +1,24 @@
+/**
+ * @fileoverview Authentication testing utilities
+ * @module test/auth-test-utils
+ * @description
+ * Provides mock data and helper functions for testing authentication-related
+ * functionality. Includes mock user data, sessions, and Supabase client mocks.
+ */
+
 import { vi } from 'vitest';
 import { AuthError, Session, User, AuthTokenResponse } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 
-// Mock user data
+/**
+ * Mock user data representing an authenticated user
+ * 
+ * @type {User}
+ * @property {string} id - Unique user identifier
+ * @property {string} email - User's email address
+ * @property {string} role - Base authentication role
+ * @property {Object} user_metadata - Custom user metadata
+ */
 export const mockUser: User = {
   id: '123',
   email: 'test@example.com',
@@ -21,6 +37,15 @@ export const mockUser: User = {
   factors: [],
 };
 
+/**
+ * Mock user profile data
+ * 
+ * @type {Object}
+ * @property {string} id - Matches the mock user ID
+ * @property {string} full_name - User's display name
+ * @property {string} role - User's role in the system
+ * @property {Object} preferences - User preferences
+ */
 export const mockProfile = {
   id: mockUser.id,
   full_name: 'Test User',
@@ -33,7 +58,15 @@ export const mockProfile = {
   last_seen_at: null,
 };
 
-// Mock session
+/**
+ * Mock authentication session
+ * 
+ * @type {Session}
+ * @property {string} access_token - JWT access token
+ * @property {string} refresh_token - JWT refresh token
+ * @property {number} expires_in - Token expiration time in seconds
+ * @property {User} user - Associated user data
+ */
 export const mockSession: Session = {
   access_token: 'mock-access-token',
   refresh_token: 'mock-refresh-token',
@@ -43,7 +76,13 @@ export const mockSession: Session = {
   user: mockUser,
 };
 
-// Mock auth response
+/**
+ * Mock successful authentication response
+ * 
+ * @type {AuthTokenResponse}
+ * @property {Object} data - Contains user and session data
+ * @property {null} error - No error for successful response
+ */
 export const mockAuthResponse: AuthTokenResponse = {
   data: {
     user: mockUser,
@@ -52,7 +91,30 @@ export const mockAuthResponse: AuthTokenResponse = {
   error: null,
 };
 
-// Mock Supabase client
+/**
+ * Mock Supabase client implementation
+ * 
+ * Provides mock implementations for:
+ * - Authentication methods (signIn, signUp, signOut)
+ * - Session management
+ * - Database operations
+ * 
+ * @example
+ * ```typescript
+ * // In your test file
+ * import { supabase } from '../lib/supabase';
+ * import { setupSuccessfulAuth } from './auth-test-utils';
+ * 
+ * test('successful login', async () => {
+ *   setupSuccessfulAuth();
+ *   const response = await supabase.auth.signInWithPassword({
+ *     email: 'test@example.com',
+ *     password: 'password'
+ *   });
+ *   expect(response.error).toBeNull();
+ * });
+ * ```
+ */
 vi.mock('../lib/supabase', () => ({
   supabase: {
     auth: {
@@ -74,13 +136,46 @@ vi.mock('../lib/supabase', () => ({
   },
 }));
 
-// Helper to setup successful auth
+/**
+ * Sets up successful authentication mocks
+ * 
+ * Configures the Supabase client mock to simulate successful:
+ * - Sign in attempts
+ * - Session retrieval
+ * 
+ * @function
+ * @example
+ * ```typescript
+ * beforeEach(() => {
+ *   setupSuccessfulAuth();
+ * });
+ * ```
+ */
 export const setupSuccessfulAuth = () => {
   vi.mocked(supabase.auth.signInWithPassword).mockResolvedValue(mockAuthResponse);
   vi.mocked(supabase.auth.getSession).mockResolvedValue({ data: { session: mockSession }, error: null });
 };
 
-// Helper to setup failed auth
+/**
+ * Sets up failed authentication mocks
+ * 
+ * Configures the Supabase client mock to simulate authentication failures
+ * with a custom error message.
+ * 
+ * @function
+ * @param {string} message - Custom error message for the auth failure
+ * @example
+ * ```typescript
+ * test('handles invalid credentials', async () => {
+ *   setupFailedAuth('Invalid email or password');
+ *   const response = await supabase.auth.signInWithPassword({
+ *     email: 'wrong@example.com',
+ *     password: 'wrong'
+ *   });
+ *   expect(response.error?.message).toBe('Invalid email or password');
+ * });
+ * ```
+ */
 export const setupFailedAuth = (message: string) => {
   const error = new AuthError(message);
   vi.mocked(supabase.auth.signInWithPassword).mockResolvedValue({ data: { user: null, session: null }, error });

@@ -1,7 +1,36 @@
+/**
+ * @fileoverview Landing page component
+ * @module pages/LandingPage
+ * @description
+ * Main landing page for unauthenticated users. Provides a welcoming introduction
+ * to the application and navigation options for authentication.
+ */
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '../components/common/button';
 
+/**
+ * Landing page component for the application
+ * 
+ * Features:
+ * - Welcoming hero section
+ * - Application description
+ * - Authentication navigation options
+ * - Responsive design
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * // In your router configuration
+ * <Route path="/" element={<LandingPage />} />
+ * 
+ * // With authentication guard
+ * function PublicRoute() {
+ *   return !isAuthenticated ? <LandingPage /> : <Navigate to="/app" />;
+ * }
+ * ```
+ */
 export function LandingPage() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gray-50">

@@ -68,10 +68,31 @@
     - [x] Login page (2024-01-20 18:45 EST)
     - [x] Registration page (2024-01-20 19:30 EST)
     - [x] User menu & logout (2024-01-20 19:30 EST)
-  - [ ] Protected Routes (Critical for MVP)
+  - [x] Protected Routes (Critical for MVP)
     - [x] ProtectedRoute component (2024-01-20 18:30 EST)
-    - [ ] Role-based access
-    - [ ] Redirect logic
+    - [x] Role management service (2024-01-21 10:30 EST)
+      - [x] User role CRUD operations
+      - [x] Permission checks
+      - [x] Role assignment validation
+      - [x] Audit logging
+    - [x] Role management tests (2024-01-21 19:55 EST)
+      - [x] User role operations tests
+      - [x] Permission check tests
+      - [x] Role assignment tests
+      - [x] Audit logging tests
+    - [x] Permission validation middleware (2024-01-21 20:01 EST)
+      - [x] Create middleware function
+      - [x] Handle unauthorized access
+      - [x] Add error handling
+      - [x] Add tests
+        - [x] Single permission checks
+        - [x] Multiple permission checks
+        - [x] Error handling cases
+    - [x] Redirect logic (2024-01-21 20:15 EST)
+      - [x] Login redirect with return path
+      - [x] Unauthorized page
+      - [x] Role-based access control
+      - [x] Manual testing guide
 
 ### Post-MVP Features
 - [ ] Enhanced Authentication
@@ -720,13 +741,14 @@ npm run dev
       - [x] Permission checks (2024-01-21 10:30 EST)
       - [x] Role assignment validation (2024-01-21 10:30 EST)
       - [x] Audit logging (2024-01-21 10:30 EST)
-    - [ ] Permission validation middleware (In Progress)
-      - [ ] Create middleware function
-      - [ ] Handle unauthorized access
-      - [ ] Add error handling
-    - [ ] Role assignment endpoints
-    - [ ] Role verification utilities
-    - [ ] Role-based query helpers
+    - [x] Permission validation middleware (2024-01-21 11:00 EST)
+      - [x] Create middleware function (2024-01-21 11:00 EST)
+      - [x] Handle unauthorized access (2024-01-21 11:00 EST)
+      - [x] Add error handling (2024-01-21 11:00 EST)
+    - [ ] Role assignment endpoints (In Progress)
+      - [ ] Create role assignment endpoint
+      - [ ] Create role removal endpoint
+      - [ ] Add validation and error handling
   
   - [ ] Frontend Implementation
     - [ ] Role-based route protection
@@ -745,8 +767,15 @@ npm run dev
       - [ ] PermissionIndicator component
   
   - [ ] Testing Implementation
-    - [ ] Role service unit tests
-    - [ ] Permission middleware tests
+    - [x] Role service unit tests (2024-01-21 11:30 EST)
+      - [x] User role operations (2024-01-21 11:30 EST)
+      - [x] Permission checks (2024-01-21 11:30 EST)
+      - [x] Role assignment (2024-01-21 11:30 EST)
+      - [x] Audit logging (2024-01-21 11:30 EST)
+    - [x] Permission middleware tests (2024-01-21 11:30 EST)
+      - [x] Single permission checks (2024-01-21 11:30 EST)
+      - [x] Multiple permission checks (2024-01-21 11:30 EST)
+      - [x] Error handling (2024-01-21 11:30 EST)
     - [ ] Role-based component tests
     - [ ] Integration tests
       - [ ] Role assignment flow
