@@ -96,6 +96,66 @@ export type Database = {
           last_seen_at?: string | null;
         };
       };
+      /**
+       * Tickets table
+       * Stores customer support tickets and their details
+       */
+      tickets: {
+        /**
+         * Row type for reading data
+         */
+        Row: {
+          id: string;
+          title: string;
+          description: string;
+          status: 'open' | 'in_progress' | 'resolved' | 'closed';
+          priority: 'low' | 'medium' | 'high' | 'urgent';
+          created_by: string;
+          assigned_to: string | null;
+          category: string | null;
+          tags: string[] | null;
+          attachments: string[] | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        /**
+         * Insert type with required and optional fields
+         */
+        Insert: {
+          id?: string;
+          title: string;
+          description: string;
+          status?: 'open' | 'in_progress' | 'resolved' | 'closed';
+          priority: 'low' | 'medium' | 'high' | 'urgent';
+          created_by: string;
+          assigned_to?: string | null;
+          category?: string | null;
+          tags?: string[] | null;
+          attachments?: string[] | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        /**
+         * Update type with all fields optional
+         */
+        Update: {
+          id?: string;
+          title?: string;
+          description?: string;
+          status?: 'open' | 'in_progress' | 'resolved' | 'closed';
+          priority?: 'low' | 'medium' | 'high' | 'urgent';
+          created_by?: string;
+          assigned_to?: string | null;
+          category?: string | null;
+          tags?: string[] | null;
+          attachments?: string[] | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
     };
     /**
      * Database view definitions
