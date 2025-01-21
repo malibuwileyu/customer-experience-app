@@ -8,7 +8,7 @@
  */
 
 import { create } from 'zustand';
-import { User } from '@supabase/supabase-js';
+import { User, Session } from '@supabase/supabase-js';
 import { AuthState, Profile } from '../types/auth.types';
 
 /**

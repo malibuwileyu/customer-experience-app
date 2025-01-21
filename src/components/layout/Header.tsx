@@ -7,7 +7,6 @@
  * Navigation items are conditionally rendered based on user roles.
  */
 
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUserRoles } from '../../hooks/auth/useUserRoles';

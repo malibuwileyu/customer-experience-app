@@ -10,7 +10,6 @@
 import * as React from "react"
 import { ErrorBoundary } from "react-error-boundary"
 import { Button } from "../components/common/button"
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "../components/common/card"
 import { BuggyCounter } from "../components/common/buggy-counter"
 import { ErrorFallback } from "../components/common/error-fallback"
 import { useToast } from "../hooks/use-toast"

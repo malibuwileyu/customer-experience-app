@@ -9,7 +9,6 @@
 
 import * as React from "react"
 import { cn } from "../../lib/utils"
-import { FormField, type FormFieldProps } from "./form-field"
 
 /**
  * Props interface for the FormSelect component

@@ -7,7 +7,6 @@
  * with a responsive layout for different screen sizes.
  */
 
-import React from 'react';
 
 /**
  * Footer component with responsive layout and navigation links

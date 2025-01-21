@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { supabase } from '../../lib/supabase';
-import { AuthError } from '@supabase/supabase-js';
 
 describe('Supabase Auth Integration Tests', () => {
   // Test user credentials

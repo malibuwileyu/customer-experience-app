@@ -7,7 +7,6 @@
  */
 
 import { z } from 'zod';
-import { UserRole } from '../../types/role.types';
 
 /**
  * Email validation schema
@@ -35,7 +34,6 @@ export const passwordSchema = z
 /**
  * User role validation schema
  * 
- * @type {z.ZodEnum<[UserRole, ...]>}
  */
 export const roleSchema = z.enum(['customer', 'agent', 'team_lead', 'admin', 'super_admin'] as const);
 

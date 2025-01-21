@@ -6,7 +6,7 @@
  * Integrates with Supabase Auth and custom profile management.
  */
 
-import { User } from '@supabase/supabase-js';
+import { User, Session } from '@supabase/supabase-js';
 
 /**
  * Available user roles in the system
@@ -22,7 +22,7 @@ export type UserRole = 'admin' | 'agent' | 'team_lead' | 'customer';
  * 
  * @interface Profile
  * @property {string} id - Primary key
- * @property {string} user_id - Foreign key to auth.users
+ * @property {string} email - Foreign key to auth.users
  * @property {string | null} full_name - User's full name
  * @property {UserRole} role - User's role in the system
  * @property {string | null} avatar_url - URL to user's avatar image
@@ -34,15 +34,9 @@ export type UserRole = 'admin' | 'agent' | 'team_lead' | 'customer';
  */
 export interface Profile {
   id: string;
-  user_id: string;
-  full_name: string | null;
-  role: UserRole;
-  avatar_url: string | null;
-  preferences: Record<string, unknown>;
-  metadata: Record<string, unknown>;
-  created_at: string;
-  updated_at: string;
-  last_seen_at: string | null;
+  email: string;
+  full_name?: string;
+  avatar_url?: string;
 }
 
 /**
@@ -54,12 +48,14 @@ export interface Profile {
  * @property {Profile | null} profile - Current user's profile
  * @property {boolean} loading - Authentication loading state
  * @property {Error | null} error - Authentication error if any
+ * @property {Session | null} session - Current Supabase session
  */
 export interface AuthState {
   user: User | null;
   profile: Profile | null;
   loading: boolean;
   error: Error | null;
+  session: Session | null;
 }
 
 /**

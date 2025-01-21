@@ -4,7 +4,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { BrowserRouter, useNavigate } from 'react-router-dom';
 import { RegistrationPage } from '../../../pages/auth/RegistrationPage';
 import { AuthProvider } from '../../../contexts/AuthContext';
-import React from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';

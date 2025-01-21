@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '../../lib/supabase';
 import { roleManagementService, serviceClient } from '../../services/role-management.service';
 import { useAuth } from '../../contexts/AuthContext';
 import {
@@ -15,7 +14,6 @@ import {
   TableHead,
   TableBody,
   TableCell,
-  Button,
   Select,
   SelectContent,
   SelectItem,

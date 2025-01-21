@@ -9,7 +9,6 @@
 
 import * as React from "react"
 import { Input, type InputProps } from "./input"
-import { FormField, type FormFieldProps } from "./form-field"
 
 /**
  * Props interface for the FormInput component

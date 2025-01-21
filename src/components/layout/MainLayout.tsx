@@ -6,7 +6,6 @@
  * It provides a consistent structure with header, footer, and main content area.
  */
 
-import React from 'react';
 import { Outlet } from 'react-router-dom';
 import { Header } from './Header';
 import { Footer } from './Footer';

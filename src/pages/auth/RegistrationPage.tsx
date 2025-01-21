@@ -14,7 +14,6 @@ import {
   FormControl,
   FormMessage,
 } from '../../components/common/form';
-import type { ControllerRenderProps } from 'react-hook-form';
 import { AuthError } from '@supabase/supabase-js';
 
 const registrationSchema = z.object({

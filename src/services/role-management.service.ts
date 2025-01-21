@@ -67,7 +67,6 @@ export type CheckPermissionParams = {
  * @property {string} name - Name of the permission
  * @property {string | null} description - Optional description of the permission
  */
-type DatabasePermission = {
   id: string
   name: string
   description: string | null

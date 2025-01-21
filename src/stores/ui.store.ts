@@ -15,14 +15,16 @@ import { create } from 'zustand'
  * @interface
  * @property {('light' | 'dark')} theme - Current theme setting
  * @property {boolean} sidebarOpen - Whether the sidebar is open
+ * @property {boolean} isLoading - Whether the application is loading
  * @property {Object} actions - UI state actions
  * @property {Function} actions.toggleTheme - Toggles between light and dark themes
  * @property {Function} actions.toggleSidebar - Toggles sidebar visibility
  * @property {Function} actions.setSidebarOpen - Sets sidebar visibility directly
  */
-interface UIState {
+export interface UIState {
   theme: 'light' | 'dark'
   sidebarOpen: boolean
+  isLoading: boolean
   actions: {
     toggleTheme: () => void
     toggleSidebar: () => void
@@ -67,6 +69,8 @@ export const useUIStore = create<UIState>((set) => ({
   theme: 'light',
   /** Sidebar starts open */
   sidebarOpen: true,
+  /** Default loading state */
+  isLoading: false,
   /** UI state actions */
   actions: {
     /** Toggles between light and dark themes */

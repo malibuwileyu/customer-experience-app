@@ -95,7 +95,7 @@ export function getFieldStateClass<T extends FieldValues>(
   field: Path<T>
 ): string {
   const hasError = hasFieldError(form, field);
-  const isDirty = form.formState.dirtyFields[field];
+  const isDirty = field in form.formState.dirtyFields;
   const isValid = !hasError && isDirty;
 
   if (hasError) {
@@ -125,14 +125,15 @@ export function getFieldStateClass<T extends FieldValues>(
 export function getFieldAriaAttrs<T extends FieldValues>(
   form: UseFormReturn<T>,
   field: Path<T>
-): Record<string, boolean | string> {
+): Record<string, string | boolean> {
   const hasError = hasFieldError(form, field);
   const error = getFieldError(form, field);
+  const errorId = `${field}-error`;
 
   return {
     'aria-invalid': hasError,
-    'aria-errormessage': hasError ? `${field}-error` : undefined,
-    'aria-describedby': error ? `${field}-error` : undefined,
+    'aria-errormessage': hasError ? errorId : '',
+    'aria-describedby': error ? errorId : '',
   };
 }
 
@@ -166,5 +167,16 @@ export function getFieldProps<T extends FieldValues>(
     name: field,
     className: getFieldStateClass(form, field),
     ...getFieldAriaAttrs(form, field),
+  };
+}
+
+export function getFieldAriaProps<T extends FieldValues>(
+  form: UseFormReturn<T>,
+  field: Path<T>
+): { 'aria-invalid': boolean; 'aria-errormessage'?: string } {
+  const error = getFieldError(form, field);
+  return {
+    'aria-invalid': !!error,
+    'aria-errormessage': error || undefined
   };
 } 
