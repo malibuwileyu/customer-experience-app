@@ -124,7 +124,7 @@ export function getFieldStateClass<T extends FieldValues>(
 export function getFieldAriaProps<T extends FieldValues>(
   form: UseFormReturn<T>,
   field: Path<T>
-): { 'aria-invalid': boolean; 'aria-errormessage'?: string } {
+): { 'aria-invalid': boolean; 'aria-errormessage': string | undefined } {
   const error = getFieldError(form, field);
   const errorId = error ? `${field}-error` : undefined;
   

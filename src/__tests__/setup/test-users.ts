@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import { createClient } from '@supabase/supabase-js'
+import { UserRole } from '@/types/role.types'
 
 // Get Supabase URL from the regular client
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL
@@ -107,6 +108,7 @@ export async function setupTestUsers() {
       .in('role', Object.values(TEST_USER_DATA).map(u => u.role))
 
     // Define role permissions
+    const rolePermissions = {
       admin: permissions.map(p => p.id), // Admin has all permissions
       agent: permissions
         .filter(p => ['view:tickets', 'create:tickets'].includes(p.name))
@@ -117,6 +119,7 @@ export async function setupTestUsers() {
     }
 
     // Assign role permissions using service client
+    for (const [role, permissionIds] of Object.entries(rolePermissions)) {
       if (permissionIds.length > 0) {
         const { error: rpError } = await serviceClient
           .from('role_permissions')
