@@ -9,6 +9,8 @@ import { Skeleton } from '../../components/common/skeleton';
 import { LoadingOverlay } from '../../components/common/loading-overlay';
 import { ErrorBoundary } from '../../components/common/error-boundary';
 import { BuggyCounter } from '../../components/common/buggy-counter';
+import { Dialog, DialogContent, DialogTrigger } from '../../components/common/dialog';
+import { CreateTicketForm } from '../../components/tickets/create-ticket-form';
 import { useState } from 'react';
 
 export function DashboardPage() {
@@ -40,7 +42,14 @@ export function DashboardPage() {
             <CardDescription>Common tasks you can perform</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Button className="w-full">Create Ticket</Button>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button className="w-full">Create Ticket</Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[600px]">
+                <CreateTicketForm />
+              </DialogContent>
+            </Dialog>
             <Button variant="outline" className="w-full">View Knowledge Base</Button>
           </CardContent>
         </Card>

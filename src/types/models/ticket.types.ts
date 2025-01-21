@@ -1,33 +1,123 @@
 /**
- * @fileoverview Ticket system type definitions
+ * @fileoverview Ticket types and interfaces
  * @module types/models/ticket
  */
 
-import { Database } from '../database.types'
+import type { Database } from '@/types/database.types'
+import type { User } from './user.types'
 
+// Database types
+type DBTicket = Database['public']['Tables']['tickets']['Row']
+type DBTicketComment = Database['public']['Tables']['ticket_comments']['Row']
+type DBTicketStatusHistory = Database['public']['Tables']['ticket_status_history']['Row']
+type DBTicketAssignmentHistory = Database['public']['Tables']['ticket_assignment_history']['Row']
+
+// Enums
+export const TICKET_STATUS: Record<TicketStatus, string> = {
+  open: 'Open',
+  in_progress: 'In Progress',
+  resolved: 'Resolved',
+  closed: 'Closed',
+}
+
+export const TICKET_PRIORITY: Record<TicketPriority, string> = {
+  low: 'Low',
+  medium: 'Medium',
+  high: 'High',
+  urgent: 'Urgent',
+}
+
+// Types
 export type TicketStatus = 'open' | 'in_progress' | 'resolved' | 'closed'
 export type TicketPriority = 'low' | 'medium' | 'high' | 'urgent'
 
+// Main interfaces
 export interface Ticket {
   id: string
   title: string
   description: string
-  status: TicketStatus
   priority: TicketPriority
+  status: TicketStatus
   created_at: string
   updated_at: string
   created_by: string
-  assigned_to?: string
-  category?: string
-  tags?: string[]
+  assignee_id?: string
+  category_id?: string
+  team_id?: string
+  internal_notes?: string
   attachments?: string[]
+  tags?: string[]
 }
 
+export interface TicketComment extends Omit<DBTicketComment, 'user_id'> {
+  user: {
+    id: string
+    name: string
+    email: string
+  }
+}
+
+export interface TicketStatusHistory extends Omit<DBTicketStatusHistory, 'changed_by'> {
+  changed_by_user: {
+    id: string
+    name: string
+  }
+}
+
+export interface TicketAssignmentHistory extends Omit<DBTicketAssignmentHistory, 'assigned_by' | 'old_assignee' | 'new_assignee'> {
+  assigned_by_user: {
+    id: string
+    name: string
+  }
+  old_assignee?: {
+    id: string
+    name: string
+  }
+  new_assignee: {
+    id: string
+    name: string
+  }
+}
+
+// DTO types
+export interface CreateTicketDTO {
+  title: string
+  description: string
+  priority: TicketPriority
+  category_id?: string
+  team_id?: string
+  assignee_id?: string
+  internal_notes?: string
+  attachments?: string[]
+  tags?: string[]
+}
+
+export interface UpdateTicketDTO {
+  title?: string
+  description?: string
+  priority?: TicketPriority
+  status?: TicketStatus
+  category_id?: string
+  team_id?: string
+  assignee_id?: string
+  internal_notes?: string
+  attachments?: string[]
+  tags?: string[]
+}
+
+export interface CreateTicketCommentDTO {
+  ticket_id: string
+  content: string
+  is_internal: boolean
+}
+
+// Filter and sort types
 export interface TicketFilters {
-  status?: TicketStatus[]
-  priority?: TicketPriority[]
+  status?: TicketStatus
+  priority?: TicketPriority
   assignedTo?: string
-  category?: string
+  team_id?: string
+  category_id?: string
   tags?: string[]
   search?: string
   dateRange?: {
@@ -41,21 +131,15 @@ export interface TicketSort {
   direction: 'asc' | 'desc'
 }
 
-export interface CreateTicketDTO {
-  title: string
-  description: string
-  priority: TicketPriority
-  category?: string
-  tags?: string[]
-  attachments?: string[]
-}
-
-export interface UpdateTicketDTO extends Partial<CreateTicketDTO> {
-  status?: TicketStatus
-  assigned_to?: string
-}
-
-// Database types
-export type TicketRow = Database['public']['Tables']['tickets']['Row']
-export type TicketInsert = Database['public']['Tables']['tickets']['Insert']
-export type TicketUpdate = Database['public']['Tables']['tickets']['Update'] 
+export interface TicketState {
+  tickets: Ticket[]
+  comments: TicketComment[]
+  selectedTicket: Ticket | null
+  filters: Partial<TicketFilters>
+  sort: TicketSort
+  isLoading: boolean
+  isCreating: boolean
+  isUpdating: boolean
+  isCommenting: boolean
+  error: Error | null
+} 

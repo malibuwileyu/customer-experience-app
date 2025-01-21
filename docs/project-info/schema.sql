@@ -72,6 +72,7 @@ CREATE TABLE IF NOT EXISTS tickets (
   team_id UUID REFERENCES teams(id),
   created_by UUID NOT NULL REFERENCES auth.users(id),
   assigned_to UUID REFERENCES auth.users(id),
+  sla_due_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );

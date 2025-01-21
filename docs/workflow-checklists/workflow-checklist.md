@@ -71,6 +71,15 @@
 
 #### Afternoon: Ticket System
 - [ ] Core Ticket Features
+  - [x] Data Models (2024-01-21 20:45 EST)
+    - [x] Basic fields (ID, timestamps, status) (2024-01-21 20:45 EST)
+    - [x] Custom fields support (2024-01-21 20:45 EST)
+    - [x] Tags system (2024-01-21 20:45 EST)
+    - [x] Priority levels (2024-01-21 20:45 EST)
+    - [x] Internal notes (2024-01-21 20:45 EST)
+    - [x] Status workflows (2024-01-21 20:45 EST)
+    - [x] Assignment rules (2024-01-21 20:45 EST)
+    - [x] SLA configuration (2024-01-21 20:45 EST)
   - [ ] Ticket creation
   - [ ] Ticket listing
   - [ ] Ticket details
