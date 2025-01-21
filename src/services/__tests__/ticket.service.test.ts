@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { createTicket, getTicketById, updateTicket } from '../ticket.service'
+import { ticketService } from '../ticket.service'
 import { supabase } from '../../lib/supabase'
 import type { TicketPriority } from '../../types/models/ticket.types'
 
@@ -49,7 +49,7 @@ describe('Ticket Service', () => {
         })
       } as any)
 
-      const result = await createTicket(mockTicket)
+      const result = await ticketService.createTicket(mockTicket)
       expect(result).toEqual({ id: 'test-ticket-id', ...mockTicket, created_by: mockUser.id })
     })
 
@@ -77,7 +77,7 @@ describe('Ticket Service', () => {
         })
       } as any)
 
-      await expect(createTicket(mockTicket)).rejects.toThrow('Failed to create ticket')
+      await expect(ticketService.createTicket(mockTicket)).rejects.toThrow('Failed to create ticket')
     })
   })
 
@@ -102,7 +102,7 @@ describe('Ticket Service', () => {
         })
       } as any)
 
-      const result = await getTicketById('test-ticket-id')
+      const result = await ticketService.getTicket('test-ticket-id')
       expect(result).toEqual(mockTicket)
     })
 
@@ -118,7 +118,7 @@ describe('Ticket Service', () => {
         })
       } as any)
 
-      const result = await getTicketById('non-existent-id')
+      const result = await ticketService.getTicket('non-existent-id')
       expect(result).toBeNull()
     })
   })
@@ -143,7 +143,7 @@ describe('Ticket Service', () => {
         })
       } as any)
 
-      const result = await updateTicket('test-ticket-id', mockUpdate)
+      const result = await ticketService.updateTicket('test-ticket-id', mockUpdate)
       expect(result).toEqual({ id: 'test-ticket-id', ...mockUpdate })
     })
 
@@ -165,7 +165,7 @@ describe('Ticket Service', () => {
         })
       } as any)
 
-      await expect(updateTicket('test-ticket-id', mockUpdate))
+      await expect(ticketService.updateTicket('test-ticket-id', mockUpdate))
         .rejects.toThrow('Failed to update ticket')
     })
   })

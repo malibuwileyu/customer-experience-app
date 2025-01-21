@@ -20,10 +20,15 @@ export const ticketService = {
       data: { user },
     } = await supabase.auth.getUser()
 
+    // Extract internal notes and create metadata object
+    const { internal_notes, ...ticketData } = data
+    const metadata = internal_notes ? { internal_notes } : null
+
     const { data: ticket, error } = await supabase
       .from('tickets')
       .insert({
-        ...data,
+        ...ticketData,
+        metadata,
         created_by: user?.id,
         status: 'open'
       })
@@ -189,4 +194,7 @@ export const ticketService = {
 
     if (error) throw error
   }
-} 
+}
+
+export const { getTickets } = ticketService
+export default ticketService 

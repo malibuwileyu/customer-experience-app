@@ -18,7 +18,12 @@ type TicketFilters = {
   search?: string
 }
 
-export function TicketList() {
+interface TicketListProps {
+  selectedTickets?: string[]
+  onSelectTicket?: (ticketId: string) => void
+}
+
+export function TicketList({ selectedTickets = [], onSelectTicket }: TicketListProps) {
   const [filters, setFilters] = useState<TicketFilters>({})
   const { data: tickets, isPending, error } = useTickets(filters)
 
@@ -104,7 +109,12 @@ export function TicketList() {
 
       <div className="space-y-4">
         {tickets.map((ticket) => (
-          <TicketItem key={ticket.id} ticket={ticket} />
+          <TicketItem 
+            key={ticket.id} 
+            ticket={ticket} 
+            selected={selectedTickets.includes(ticket.id)}
+            onSelect={onSelectTicket}
+          />
         ))}
       </div>
     </div>

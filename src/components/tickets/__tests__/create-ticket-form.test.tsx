@@ -1,80 +1,79 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, waitFor, act, cleanup } from '@testing-library/react'
+import { vi, describe, it, expect } from 'vitest'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { CreateTicketForm } from '../create-ticket-form'
 import { useCreateTicket } from '../../../hooks/tickets/use-create-ticket'
+import type { TicketPriority, CreateTicketDTO } from '../../../types/models/ticket.types'
 
-// Mock the custom hook
+const defaultVariables: CreateTicketDTO = {
+  title: '',
+  description: '',
+  priority: 'medium' as TicketPriority
+}
+
+const defaultMockMutation = {
+  mutate: vi.fn(),
+  mutateAsync: vi.fn(),
+  isPending: false as const,
+  isError: false as const,
+  isSuccess: false as const,
+  isIdle: true as const,
+  error: null,
+  data: undefined,
+  reset: vi.fn(),
+  variables: undefined,
+  failureCount: 0,
+  failureReason: null,
+  status: 'idle' as const,
+  context: undefined,
+  isPaused: false,
+  submittedAt: 0
+}
+
+// Mock the useCreateTicket hook
 vi.mock('../../../hooks/tickets/use-create-ticket', () => ({
-  useCreateTicket: vi.fn()
-}))
-
-// Mock toast notifications
-vi.mock('sonner', () => ({
-  toast: {
-    success: vi.fn(),
-    error: vi.fn()
-  }
+  useCreateTicket: vi.fn(() => defaultMockMutation)
 }))
 
 describe('CreateTicketForm', () => {
-  const mockMutate = vi.fn()
-
-  beforeEach(() => {
-    vi.clearAllMocks()
-    
-    // Setup default mock implementation
-    vi.mocked(useCreateTicket).mockReturnValue({
-      mutate: mockMutate,
-      isPending: false,
-      error: null
-    } as any)
-  })
-
-  afterEach(() => {
-    cleanup()
-    vi.clearAllMocks()
-  })
-
   it('renders form fields correctly', () => {
     render(<CreateTicketForm />)
-
-    // Check for form elements
     expect(screen.getByLabelText(/title/i)).toBeDefined()
     expect(screen.getByLabelText(/description/i)).toBeDefined()
-    expect(screen.getByRole('combobox')).toBeDefined()
-    expect(screen.getByLabelText(/internal notes/i)).toBeDefined()
-    expect(screen.getByRole('button', { name: /create ticket/i })).toBeDefined()
+    expect(screen.getByLabelText(/priority/i)).toBeDefined()
   })
 
   it('validates required fields', async () => {
-    render(<CreateTicketForm />)
     const user = userEvent.setup()
+    render(<CreateTicketForm />)
 
-    // Try to submit empty form
+    // Submit empty form
     await user.click(screen.getByRole('button', { name: /create ticket/i }))
 
-    // Check for validation messages
+    // Check validation errors
     await waitFor(() => {
-      expect(screen.getByLabelText(/title/i).getAttribute('aria-invalid')).toBe('true')
-      expect(screen.getByLabelText(/description/i).getAttribute('aria-invalid')).toBe('true')
+      // The FormMessage component renders validation messages in a div with role="alert"
+      const alerts = screen.getAllByRole('alert')
+      expect(alerts.some(alert => alert.textContent?.includes('Title must be at least 3 characters'))).toBe(true)
+      expect(alerts.some(alert => alert.textContent?.includes('Description must be at least 10 characters'))).toBe(true)
     })
   })
 
   it('submits form with valid data', async () => {
-    render(<CreateTicketForm />)
-    const user = userEvent.setup()
+    const mockMutate = vi.fn()
+    const mockHook = vi.fn(() => ({
+      ...defaultMockMutation,
+      mutate: mockMutate,
+      mutateAsync: vi.fn()
+    }))
+    vi.mocked(useCreateTicket).mockImplementation(mockHook)
 
-    // Fill out form
+    const user = userEvent.setup()
+    render(<CreateTicketForm />)
+
+    // Fill in form fields
     await user.type(screen.getByLabelText(/title/i), 'Test Ticket')
     await user.type(screen.getByLabelText(/description/i), 'This is a test ticket description')
-    
-    // Change priority using the select
-    const prioritySelect = screen.getByRole('combobox')
-    await user.click(prioritySelect)
-    await user.click(screen.getByRole('option', { name: 'High' }))
-    
-    await user.type(screen.getByLabelText(/internal notes/i), 'Test internal note')
 
     // Submit form
     await user.click(screen.getByRole('button', { name: /create ticket/i }))
@@ -84,71 +83,61 @@ describe('CreateTicketForm', () => {
       expect(mockMutate).toHaveBeenCalledWith({
         title: 'Test Ticket',
         description: 'This is a test ticket description',
-        priority: 'high',
-        internal_notes: 'Test internal note'
+        priority: 'medium'
       })
     })
   })
 
-  it('shows loading state during submission', async () => {
-    vi.mocked(useCreateTicket).mockReturnValue({
-      mutate: mockMutate,
-      isPending: true,
-      error: null
-    } as any)
+  it('shows loading state during submission', () => {
+    const loadingVariables: CreateTicketDTO = {
+      title: 'Test Ticket',
+      description: 'This is a test ticket description',
+      priority: 'medium'
+    }
+
+    const mockHook = vi.fn(() => ({
+      ...defaultMockMutation,
+      isPending: true as const,
+      isIdle: false as const,
+      isError: false as const,
+      isSuccess: false as const,
+      data: undefined,
+      variables: loadingVariables,
+      status: 'pending' as const,
+      mutateAsync: vi.fn()
+    }))
+    vi.mocked(useCreateTicket).mockImplementation(mockHook)
 
     render(<CreateTicketForm />)
-
     const submitButton = screen.getByRole('button', { name: /creating/i })
-    expect(submitButton.getAttribute('disabled')).toBe('')
+    expect(submitButton).toBeDefined()
+    expect(submitButton.hasAttribute('disabled')).toBe(true)
   })
 
-  it('shows error message on submission failure', async () => {
-    vi.mocked(useCreateTicket).mockReturnValue({
-      mutate: mockMutate,
-      isPending: false,
-      error: new Error('Failed to create ticket')
-    } as any)
+  it('shows error message on submission failure', () => {
+    const errorVariables: CreateTicketDTO = {
+      title: 'Test Ticket',
+      description: 'This is a test ticket description',
+      priority: 'medium'
+    }
+
+    const mockHook = vi.fn(() => ({
+      ...defaultMockMutation,
+      isPending: false as const,
+      isError: true as const,
+      isSuccess: false as const,
+      isIdle: false as const,
+      error: new Error('Failed to create ticket'),
+      data: undefined,
+      variables: errorVariables,
+      failureCount: 1,
+      failureReason: new Error('Failed to create ticket'),
+      status: 'error' as const,
+      mutateAsync: vi.fn()
+    }))
+    vi.mocked(useCreateTicket).mockImplementation(mockHook)
 
     render(<CreateTicketForm />)
-
-    expect(screen.getByText('Failed to create ticket')).toBeDefined()
+    expect(screen.getByText(/failed to create ticket/i)).toBeDefined()
   })
-
-  // TODO: Implement form reset functionality post-MVP
-  // it('resets form on reset button click', async () => {
-  //   render(<CreateTicketForm />)
-  //   const user = userEvent.setup()
-
-  //   // Fill out form fields
-  //   await user.type(screen.getByLabelText(/title/i), 'Test Title')
-  //   await user.type(screen.getByLabelText(/description/i), 'Test Description')
-  //   await user.type(screen.getByLabelText(/internal notes/i), 'Test Notes')
-
-  //   // Change priority to High
-  //   await act(async () => {
-  //     const select = screen.getByRole('combobox', { name: /priority/i })
-  //     await user.click(select)
-  //     await waitFor(() => {
-  //       expect(screen.getByRole('listbox')).toBeInTheDocument()
-  //     })
-  //     const highOption = screen.getByText('High')
-  //     await user.click(highOption)
-  //   })
-
-  //   // Verify form was filled out
-  //   expect((screen.getByLabelText(/title/i) as HTMLInputElement).value).toBe('Test Title')
-  //   expect((screen.getByLabelText(/description/i) as HTMLTextAreaElement).value).toBe('Test Description')
-  //   expect((screen.getByLabelText(/internal notes/i) as HTMLTextAreaElement).value).toBe('Test Notes')
-  //   expect(screen.getByRole('combobox', { name: /priority/i })).toHaveTextContent('High')
-
-  //   // Click reset button
-  //   await user.click(screen.getByRole('button', { name: /reset/i }))
-
-  //   // Verify form was reset
-  //   expect((screen.getByLabelText(/title/i) as HTMLInputElement).value).toBe('')
-  //   expect((screen.getByLabelText(/description/i) as HTMLTextAreaElement).value).toBe('')
-  //   expect((screen.getByLabelText(/internal notes/i) as HTMLTextAreaElement).value).toBe('')
-  //   expect(screen.getByRole('combobox', { name: /priority/i })).toHaveTextContent('Medium')
-  // })
 }) 

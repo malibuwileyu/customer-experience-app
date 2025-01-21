@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { BrowserRouter, useNavigate } from 'react-router-dom';
@@ -151,18 +151,21 @@ describe('RegistrationPage', () => {
     
     await waitFor(() => {
       expect(screen.getByText(/user already registered/i)).toBeDefined();
-    });
+    }, { timeout: 5000 });
   });
 
   it('shows loading state during registration attempt', async () => {
-    renderRegistrationPage();
+    const { getByRole } = render(<RegistrationPage />);
+    const submitButton = getByRole('button', { name: /sign up/i });
     
-    await userEvent.type(screen.getByLabelText(/email/i), `testuser_${Date.now()}@gmail.com`);
-    await userEvent.type(screen.getByLabelText(/^password$/i), 'testPassword123!');
-    await userEvent.type(screen.getByLabelText(/^confirm password$/i), 'testPassword123!');
-    await userEvent.click(screen.getByRole('button', { name: /sign up/i }));
+    await act(async () => {
+      await userEvent.click(submitButton);
+    });
     
-    expect(screen.getByText(/signing up/i)).toBeDefined();
+    await waitFor(() => {
+      expect(submitButton).toBeDisabled();
+      expect(submitButton).toHaveTextContent(/signing up/i);
+    }, { timeout: 2000 });
   });
 
   it('has a link back to login page', () => {

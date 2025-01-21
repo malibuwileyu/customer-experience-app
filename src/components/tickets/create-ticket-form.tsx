@@ -63,6 +63,9 @@ export function CreateTicketForm() {
 
   const handleReset = () => {
     form.reset(defaultValues)
+    form.clearErrors()
+    // Reset file upload state if needed
+    setIsUploading(false)
   }
 
   return (
@@ -92,7 +95,11 @@ export function CreateTicketForm() {
                 <FormItem>
                   <FormLabel>Title</FormLabel>
                   <FormControl>
-                    <Input placeholder="Brief summary of the issue" {...field} />
+                    <Input 
+                      placeholder="Brief summary of the issue" 
+                      aria-invalid={!!form.formState.errors.title}
+                      {...field} 
+                    />
                   </FormControl>
                   <FormDescription>
                     A clear and concise title helps us understand your issue quickly.
@@ -112,6 +119,7 @@ export function CreateTicketForm() {
                     <Textarea 
                       placeholder="Detailed description of the issue"
                       className="min-h-[120px]"
+                      aria-invalid={!!form.formState.errors.description}
                       {...field}
                     />
                   </FormControl>
