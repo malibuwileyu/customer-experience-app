@@ -6,7 +6,6 @@
  * Configures global toast styling and positioning to match the application theme.
  */
 
-import * as React from "react"
 import { Toaster as SonnerToaster } from "sonner"
 
 /**

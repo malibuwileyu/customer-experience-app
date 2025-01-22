@@ -9,6 +9,8 @@
 
 import * as React from "react"
 import { cn } from "../../lib/utils"
+import { FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage } from './form'
+import { useFormContext } from "react-hook-form"
 
 /**
  * Props interface for the FormTextarea component
@@ -20,6 +22,7 @@ import { cn } from "../../lib/utils"
  * @property {string} [error] - Error message to display
  * @property {string} [description] - Helper text to display below the textarea
  * @property {boolean} [required] - Whether the textarea is required
+ * @property {string} name - Name of the form field
  */
 export interface FormTextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
   wrapperClassName?: string
@@ -27,6 +30,7 @@ export interface FormTextareaProps extends React.TextareaHTMLAttributes<HTMLText
   error?: string
   description?: string
   required?: boolean
+  name: string
 }
 
 /**
@@ -76,26 +80,35 @@ const FormTextarea = React.forwardRef<HTMLTextAreaElement, FormTextareaProps>(
     error, 
     description, 
     required,
+    name,
     ...props 
   }, ref) => {
+    const form = useFormContext()
+    
     return (
       <FormField
-        className={wrapperClassName}
-        label={label}
-        error={error}
-        description={description}
-        required={required}
-      >
-        <textarea
-          ref={ref}
-          className={cn(
-            "flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
-            className
-          )}
-          aria-invalid={!!error}
-          {...props}
-        />
-      </FormField>
+        control={form.control}
+        name={name}
+        render={({ field, fieldState }) => (
+          <FormItem className={wrapperClassName}>
+            {label && <FormLabel>{label}{required && ' *'}</FormLabel>}
+            <FormControl>
+              <textarea
+                {...field}
+                {...props}
+                ref={ref}
+                className={cn(
+                  "flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
+                  className
+                )}
+                aria-invalid={!!fieldState.error}
+              />
+            </FormControl>
+            {description && <FormDescription>{description}</FormDescription>}
+            {fieldState.error && <FormMessage>{fieldState.error.message}</FormMessage>}
+          </FormItem>
+        )}
+      />
     )
   }
 )

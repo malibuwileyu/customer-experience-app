@@ -9,6 +9,8 @@
 
 import * as React from "react"
 import { cn } from "../../lib/utils"
+import { FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage } from './form'
+import { useFormContext } from "react-hook-form"
 
 /**
  * Props interface for the FormSelect component
@@ -20,6 +22,7 @@ import { cn } from "../../lib/utils"
  * @property {string} [error] - Error message to display
  * @property {string} [description] - Helper text to display below the select
  * @property {boolean} [required] - Whether the select is required
+ * @property {string} name - Name of the form field
  * @property {Array<{label: string, value: string | number, disabled?: boolean}>} options - 
  *   Array of options to display in the select
  */
@@ -29,6 +32,7 @@ export interface FormSelectProps extends React.SelectHTMLAttributes<HTMLSelectEl
   error?: string
   description?: string
   required?: boolean
+  name: string
   options: Array<{
     label: string
     value: string | number
@@ -91,37 +95,46 @@ const FormSelect = React.forwardRef<HTMLSelectElement, FormSelectProps>(
     error, 
     description, 
     required,
+    name,
     options,
     ...props 
   }, ref) => {
+    const form = useFormContext()
+    
     return (
       <FormField
-        className={wrapperClassName}
-        label={label}
-        error={error}
-        description={description}
-        required={required}
-      >
-        <select
-          ref={ref}
-          className={cn(
-            "flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
-            className
-          )}
-          aria-invalid={!!error}
-          {...props}
-        >
-          {options.map((option) => (
-            <option 
-              key={option.value} 
-              value={option.value}
-              disabled={option.disabled}
-            >
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </FormField>
+        control={form.control}
+        name={name}
+        render={({ field, fieldState }) => (
+          <FormItem className={wrapperClassName}>
+            {label && <FormLabel>{label}{required && ' *'}</FormLabel>}
+            <FormControl>
+              <select
+                {...field}
+                {...props}
+                ref={ref}
+                className={cn(
+                  "flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
+                  className
+                )}
+                aria-invalid={!!fieldState.error}
+              >
+                {options.map((option) => (
+                  <option 
+                    key={option.value} 
+                    value={option.value}
+                    disabled={option.disabled}
+                  >
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </FormControl>
+            {description && <FormDescription>{description}</FormDescription>}
+            {fieldState.error && <FormMessage>{fieldState.error.message}</FormMessage>}
+          </FormItem>
+        )}
+      />
     )
   }
 )

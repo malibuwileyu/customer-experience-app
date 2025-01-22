@@ -10,6 +10,7 @@ import { Request, Response, NextFunction } from 'express'
 import { PermissionError } from './permission.middleware'
 import { requirePermission } from './permission.middleware'
 import { TICKET_PRIORITY, TICKET_STATUS } from '../types/models/ticket.types'
+import type { Database } from '@/types/database.types'
 
 /**
  * Configuration options for ticket operation validation
@@ -19,6 +20,15 @@ export type TicketValidationOptions = {
   requireTeam?: boolean
   requireCategory?: boolean
   checkSLA?: boolean
+}
+
+// Add type for ticket with teams join
+type TicketWithTeam = {
+  assigned_to: string | null
+  team_id: string | null
+  teams: {
+    lead_id: string | null
+  }
 }
 
 /**
@@ -37,7 +47,7 @@ export const validateTicketCreation = (options: TicketValidationOptions = {}) =>
         throw new Error('Description is required')
       }
 
-      if (priority && !Object.values(TICKET_PRIORITY).includes(priority)) {
+      if (priority && !Object.keys(TICKET_PRIORITY).includes(priority)) {
         throw new Error('Invalid priority value')
       }
 
@@ -68,11 +78,11 @@ export const validateTicketUpdate = (options: TicketValidationOptions = {}) => {
     try {
       const { priority, status, team_id, category_id, assignee_id } = req.body
 
-      if (priority && !Object.values(TICKET_PRIORITY).includes(priority)) {
+      if (priority && !Object.keys(TICKET_PRIORITY).includes(priority)) {
         throw new Error('Invalid priority value')
       }
 
-      if (status && !Object.values(TICKET_STATUS).includes(status)) {
+      if (status && !Object.keys(TICKET_STATUS).includes(status)) {
         throw new Error('Invalid status value')
       }
 
@@ -173,7 +183,7 @@ export const canManageTicket = async (req: Request, res: Response, next: NextFun
     const ticket = await req.supabase
       .from('tickets')
       .select(`
-        assignee_id,
+        assigned_to,
         team_id,
         teams (
           lead_id
@@ -186,9 +196,11 @@ export const canManageTicket = async (req: Request, res: Response, next: NextFun
       throw new Error('Ticket not found')
     }
 
+    const ticketData = ticket.data as TicketWithTeam
+
     if (
-      ticket.data.assignee_id === userId ||
-      ticket.data.teams?.lead_id === userId
+      ticketData.assigned_to === userId ||
+      ticketData.teams?.lead_id === userId
     ) {
       return next()
     }
@@ -196,5 +208,105 @@ export const canManageTicket = async (req: Request, res: Response, next: NextFun
     throw new PermissionError('User does not have permission to manage this ticket')
   } catch (error) {
     next(error)
+  }
+}
+
+/**
+ * Validates ticket creation data
+ * @param req Express request object
+ * @returns Promise that resolves when validation is complete
+ * @throws Error if validation fails
+ */
+export async function validateTicketCreate(req: Request) {
+  const { title, description, priority, team_id, category_id, assignee_id } = req.body
+
+  if (!title?.trim()) {
+    throw new Error('Title is required')
+  }
+
+  if (!description?.trim()) {
+    throw new Error('Description is required')
+  }
+
+  if (priority && !Object.keys(TICKET_PRIORITY).includes(priority)) {
+    throw new Error('Invalid priority value')
+  }
+
+  if (team_id && typeof team_id !== 'string') {
+    throw new Error('Invalid team ID')
+  }
+
+  if (category_id && typeof category_id !== 'string') {
+    throw new Error('Invalid category ID')
+  }
+
+  if (assignee_id && typeof assignee_id !== 'string') {
+    throw new Error('Invalid assignee ID')
+  }
+}
+
+/**
+ * Validates ticket update data
+ * @param req Express request object
+ * @returns Promise that resolves when validation is complete
+ * @throws Error if validation fails
+ */
+export async function validateTicketUpdateData(req: Request) {
+  const { priority, status, team_id, category_id, assignee_id } = req.body
+
+  if (priority && !Object.keys(TICKET_PRIORITY).includes(priority)) {
+    throw new Error('Invalid priority value')
+  }
+
+  if (status && !Object.keys(TICKET_STATUS).includes(status)) {
+    throw new Error('Invalid status value')
+  }
+
+  if (team_id && typeof team_id !== 'string') {
+    throw new Error('Invalid team ID')
+  }
+
+  if (category_id && typeof category_id !== 'string') {
+    throw new Error('Invalid category ID')
+  }
+
+  if (assignee_id && typeof assignee_id !== 'string') {
+    throw new Error('Invalid assignee ID')
+  }
+}
+
+/**
+ * Validates ticket assignment data
+ * @param req Express request object
+ * @returns Promise that resolves when validation is complete
+ * @throws Error if validation fails
+ */
+export async function validateTicketAssignment(req: Request) {
+  const { assignee_id } = req.body
+
+  if (!assignee_id) {
+    throw new Error('Assignee ID is required')
+  }
+
+  if (typeof assignee_id !== 'string') {
+    throw new Error('Invalid assignee ID')
+  }
+}
+
+/**
+ * Validates ticket status update data
+ * @param req Express request object
+ * @returns Promise that resolves when validation is complete
+ * @throws Error if validation fails
+ */
+export async function validateTicketStatusUpdate(req: Request) {
+  const { status } = req.body
+
+  if (!status) {
+    throw new Error('Status is required')
+  }
+
+  if (!Object.keys(TICKET_STATUS).includes(status)) {
+    throw new Error('Invalid status value')
   }
 } 

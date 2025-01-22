@@ -47,12 +47,14 @@ describe('Ticket Middleware', () => {
       const req = createMockRequest({
         title: 'Test Ticket',
         description: 'Test Description',
-        priority: TICKET_PRIORITY.MEDIUM
+        priority: 'medium'
       })
+      const next = vi.fn()
 
-      await validateTicketCreation()(req, mockResponse, mockNext)
+      const middleware = validateTicketCreation()
+      await middleware(req, mockResponse, next)
 
-      expect(mockNext).toHaveBeenCalledWith()
+      expect(next).toHaveBeenCalledWith()
     })
 
     it('should fail validation with missing title', async () => {
@@ -100,24 +102,28 @@ describe('Ticket Middleware', () => {
   describe('validateTicketUpdate', () => {
     it('should pass validation with valid update data', async () => {
       const req = createMockRequest({
-        priority: TICKET_PRIORITY.HIGH,
-        status: TICKET_STATUS.IN_PROGRESS
+        priority: 'high',
+        status: 'in_progress'
       })
+      const next = vi.fn()
 
-      await validateTicketUpdate()(req, mockResponse, mockNext)
+      const middleware = validateTicketUpdate()
+      await middleware(req, mockResponse, next)
 
-      expect(mockNext).toHaveBeenCalledWith()
+      expect(next).toHaveBeenCalledWith()
     })
 
     it('should fail validation with invalid priority', async () => {
       const req = createMockRequest({
         priority: 'invalid'
       })
+      const next = vi.fn()
 
-      await validateTicketUpdate()(req, mockResponse, mockNext)
+      const middleware = validateTicketUpdate()
+      await middleware(req, mockResponse, next)
 
-      expect(mockNext).toHaveBeenCalledWith(expect.any(Error))
-      expect(mockNext).toHaveBeenCalledWith(expect.objectContaining({
+      expect(next).toHaveBeenCalledWith(expect.any(Error))
+      expect(next).toHaveBeenCalledWith(expect.objectContaining({
         message: 'Invalid priority value'
       }))
     })
@@ -219,7 +225,7 @@ describe('Ticket Middleware', () => {
       const supabaseMock = req.supabase as unknown as { single: ReturnType<typeof vi.fn> }
       supabaseMock.single.mockResolvedValue({
         data: {
-          assignee_id: mockUserId,
+          assigned_to: mockUserId,
           team_id: mockTeamId,
           teams: {
             lead_id: 'other-user'
@@ -242,7 +248,7 @@ describe('Ticket Middleware', () => {
       const supabaseMock = req.supabase as unknown as { single: ReturnType<typeof vi.fn> }
       supabaseMock.single.mockResolvedValue({
         data: {
-          assignee_id: 'other-user',
+          assigned_to: 'other-user',
           team_id: mockTeamId,
           teams: {
             lead_id: mockUserId
@@ -265,7 +271,7 @@ describe('Ticket Middleware', () => {
       const supabaseMock = req.supabase as unknown as { single: ReturnType<typeof vi.fn> }
       supabaseMock.single.mockResolvedValue({
         data: {
-          assignee_id: 'other-user',
+          assigned_to: 'other-user',
           team_id: mockTeamId,
           teams: {
             lead_id: 'other-user'

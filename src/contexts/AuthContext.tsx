@@ -34,6 +34,9 @@ export interface AuthContextType {
     data: { user: User | null } | null;
     error: AuthError | null;
   }>;
+  signInWithEmail: (email: string, password: string) => Promise<void>;
+  signUpWithEmail: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);

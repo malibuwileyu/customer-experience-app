@@ -9,6 +9,8 @@
 
 import * as React from "react"
 import { Input, type InputProps } from "./input"
+import { FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage } from './form'
+import { useFormContext } from "react-hook-form"
 
 /**
  * Props interface for the FormInput component
@@ -20,6 +22,7 @@ import { Input, type InputProps } from "./input"
  * @property {string} [error] - Error message to display
  * @property {string} [description] - Helper text to display below the input
  * @property {boolean} [required] - Whether the input is required
+ * @property {string} name - Name of the input for form context
  */
 export interface FormInputProps extends Omit<InputProps, "className"> {
   wrapperClassName?: string
@@ -27,6 +30,7 @@ export interface FormInputProps extends Omit<InputProps, "className"> {
   error?: string
   description?: string
   required?: boolean
+  name: string
 }
 
 /**
@@ -66,21 +70,29 @@ export interface FormInputProps extends Omit<InputProps, "className"> {
  * ```
  */
 const FormInput = React.forwardRef<HTMLInputElement, FormInputProps>(
-  ({ wrapperClassName, label, error, description, required, ...props }, ref) => {
+  ({ wrapperClassName, label, error, description, required, name, ...props }, ref) => {
+    const form = useFormContext()
+    
     return (
       <FormField
-        className={wrapperClassName}
-        label={label}
-        error={error}
-        description={description}
-        required={required}
-      >
-        <Input
-          ref={ref}
-          aria-invalid={!!error}
-          {...props}
-        />
-      </FormField>
+        control={form.control}
+        name={name}
+        render={({ field, fieldState }) => (
+          <FormItem className={wrapperClassName}>
+            {label && <FormLabel>{label}{required && ' *'}</FormLabel>}
+            <FormControl>
+              <Input
+                {...field}
+                {...props}
+                ref={ref}
+                aria-invalid={!!fieldState.error}
+              />
+            </FormControl>
+            {description && <FormDescription>{description}</FormDescription>}
+            {fieldState.error && <FormMessage>{fieldState.error.message}</FormMessage>}
+          </FormItem>
+        )}
+      />
     )
   }
 )
