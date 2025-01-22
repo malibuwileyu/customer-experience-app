@@ -71,6 +71,7 @@ export function useUserRoles(userId?: string): UseUserRolesResult {
         .eq('user_id', userId)
         .throwOnError();
 
+      if (error) throw error;
       return (data || []).map(r => r.role);
     },
     enabled: !!userId, // Only run query if userId is provided

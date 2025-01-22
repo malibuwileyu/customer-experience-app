@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -28,7 +28,7 @@ const registrationSchema = z.object({
 type RegistrationFormData = z.infer<typeof registrationSchema>;
 
 export function RegistrationPage() {
-  const { register } = useAuth();
+  const { signUp } = useAuth();
   const navigate = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const form = useForm<RegistrationFormData>({
@@ -44,7 +44,7 @@ export function RegistrationPage() {
   const onSubmit = async (data: RegistrationFormData) => {
     try {
       setError(null);
-      const { data: result, error } = await register({
+      const { data: result, error } = await signUp({
         email: data.email,
         password: data.password
       });

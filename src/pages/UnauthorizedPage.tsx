@@ -6,7 +6,7 @@
  * Provides navigation options to return to a safe location based on user's auth state.
  */
 
-import { useNavigate, useLocation } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
 import { useAuth } from "../contexts/AuthContext"
 import { Button } from "../components/common/button"
 
@@ -32,7 +32,6 @@ import { Button } from "../components/common/button"
  */
 export function UnauthorizedPage() {
   const navigate = useNavigate();
-  const location = useLocation();
   const { user } = useAuth();
 
   /**

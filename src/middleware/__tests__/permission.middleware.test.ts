@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { Request, Response } from 'express'
 import { PermissionError, requirePermission, requireAnyPermission, requireAllPermissions } from '../permission.middleware'
 import { roleManagementService } from '../../services/role-management.service'
 

@@ -1,9 +1,8 @@
 'use client'
 
-import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import * as z from 'zod'
+import { z } from 'zod'
 import { Button } from '../common/button'
 import { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent } from '../common/card'
 import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription, FormMessage } from '../common/form'
@@ -40,15 +39,14 @@ const defaultValues: Partial<TicketFormData> = {
 }
 
 export function CreateTicketForm() {
-  const [isUploading, setIsUploading] = useState(false)
-  const { mutate: createTicketMutate, isPending, error } = useCreateTicket()
-
   const form = useForm<TicketFormData>({
     resolver: zodResolver(ticketFormSchema),
     defaultValues,
     mode: 'onSubmit',
     reValidateMode: 'onSubmit',
   })
+
+  const { mutate: createTicketMutate, isPending, error } = useCreateTicket()
 
   const onSubmit = async (data: TicketFormData) => {
     try {
@@ -67,8 +65,6 @@ export function CreateTicketForm() {
   const handleReset = () => {
     form.reset(defaultValues)
     form.clearErrors()
-    // Reset file upload state if needed
-    setIsUploading(false)
   }
 
   return (

@@ -5,7 +5,6 @@ import { Button } from '../../components/common/button'
 import { Checkbox } from '../../components/common/checkbox'
 import { TicketList } from '../../components/tickets/ticket-list'
 import { useTickets } from '../../hooks/tickets/use-tickets'
-import { Ticket } from '../../types/models/ticket.types'
 
 export function TicketsPage() {
   const navigate = useNavigate()

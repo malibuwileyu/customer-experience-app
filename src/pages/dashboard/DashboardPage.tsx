@@ -111,33 +111,38 @@ export function DashboardPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               <FormInput
-                label="Basic Input"
-                placeholder="Enter some text"
-                description="This is a basic input field with a label"
+                name="title"
+                label="Title"
+                placeholder="Brief summary of the issue"
+                description="A clear and concise title helps us understand your issue quickly."
               />
 
               <FormInput
-                label="Required Input"
-                placeholder="This field is required"
+                name="description"
+                label="Description"
+                placeholder="Detailed description of the issue"
                 required
-                error="This field is required"
+                error="Description is required"
               />
 
               <FormSelect
-                label="Select Example"
-                description="Choose from predefined options"
+                name="priority"
+                label="Priority"
+                description="Select the priority level for this ticket"
                 options={[
-                  { label: "Select an option", value: "", disabled: true },
-                  { label: "Option 1", value: "1" },
-                  { label: "Option 2", value: "2" },
-                  { label: "Option 3", value: "3" },
+                  { label: "Select priority...", value: "", disabled: true },
+                  { label: "Low", value: "low" },
+                  { label: "Medium", value: "medium" },
+                  { label: "High", value: "high" },
+                  { label: "Urgent", value: "urgent" }
                 ]}
               />
 
               <FormTextarea
-                label="Textarea Example"
-                placeholder="Enter multiple lines of text"
-                description="This is a textarea for longer content"
+                name="notes"
+                label="Internal Notes"
+                placeholder="Add any internal notes about this ticket"
+                description="These notes are only visible to support staff"
                 rows={4}
               />
             </CardContent>

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { Request, Response } from 'express'
 import { PermissionError } from '../permission.middleware'
 import { validateTicketCreation, validateTicketUpdate, canAccessTicket, canManageTicket } from '../ticket.middleware'
+// @ts-ignore - These imports are used indirectly in test validation
 import { TICKET_PRIORITY, TICKET_STATUS } from '../../types/models/ticket.types'
 import { SupabaseClient } from '@supabase/supabase-js'
 import { Database } from '../../types/database.types'
@@ -227,13 +228,13 @@ describe('Ticket Middleware', () => {
         data: {
           assigned_to: mockUserId,
           team_id: mockTeamId,
-          teams: {
+          teams: [{
             lead_id: 'other-user'
-          }
+          }]
         }
       })
 
-      await canManageTicket(req, mockResponse, mockNext)
+      await canManageTicket(req, mockNext)
 
       expect(mockNext).toHaveBeenCalledWith()
     })
@@ -250,13 +251,13 @@ describe('Ticket Middleware', () => {
         data: {
           assigned_to: 'other-user',
           team_id: mockTeamId,
-          teams: {
+          teams: [{
             lead_id: mockUserId
-          }
+          }]
         }
       })
 
-      await canManageTicket(req, mockResponse, mockNext)
+      await canManageTicket(req, mockNext)
 
       expect(mockNext).toHaveBeenCalledWith()
     })
@@ -273,13 +274,13 @@ describe('Ticket Middleware', () => {
         data: {
           assigned_to: 'other-user',
           team_id: mockTeamId,
-          teams: {
+          teams: [{
             lead_id: 'other-user'
-          }
+          }]
         }
       })
 
-      await canManageTicket(req, mockResponse, mockNext)
+      await canManageTicket(req, mockNext)
 
       expect(mockNext).toHaveBeenCalledWith(expect.any(PermissionError))
       expect(mockNext).toHaveBeenCalledWith(expect.objectContaining({

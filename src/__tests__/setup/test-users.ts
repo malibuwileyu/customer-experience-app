@@ -157,15 +157,15 @@ export async function cleanupTestUsers() {
       .in('role', Object.values(TEST_USER_DATA).map(u => u.role))
 
     // Clean up user roles and delete auth users
-    for (const [key, userData] of Object.entries(TEST_USERS)) {
+    for (const { id } of Object.values(TEST_USERS)) {
       // Delete user role first
       await serviceClient
         .from('user_roles')
         .delete()
-        .eq('user_id', userData.id)
+        .eq('user_id', id)
 
       // Delete auth user
-      await serviceClient.auth.admin.deleteUser(userData.id)
+      await serviceClient.auth.admin.deleteUser(id)
     }
 
     // Reset TEST_USERS

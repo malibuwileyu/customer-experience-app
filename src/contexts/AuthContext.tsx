@@ -21,22 +21,19 @@ import { User, AuthError, Session } from '@supabase/supabase-js';
  * @property {Function} signOut - Logout function
  * @property {Function} signUp - User registration function
  */
-export interface AuthContextType {
-  user: User | null;
-  session: Session | null;
-  isLoading: boolean;
+export type AuthContextType = {
+  user: User | null
+  session: Session | null
+  isLoading: boolean
   signInWithPassword: (credentials: { email: string; password: string }) => Promise<{
-    data: { user: User | null; session: Session | null };
-    error: AuthError | null;
-  }>;
-  signOut: () => Promise<void>;
-  signUp: (credentials: { email: string; password: string }) => Promise<{ 
-    data: { user: User | null } | null;
-    error: AuthError | null;
-  }>;
-  signInWithEmail: (email: string, password: string) => Promise<void>;
-  signUpWithEmail: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
+    data: { user: User | null; session: Session | null }
+    error: AuthError | null
+  }>
+  signUp: (credentials: { email: string; password: string }) => Promise<{
+    data: { user: User | null } | null
+    error: AuthError | null
+  }>
+  signOut: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);

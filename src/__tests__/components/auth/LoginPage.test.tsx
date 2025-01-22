@@ -5,7 +5,7 @@ import '@testing-library/jest-dom'
 import { BrowserRouter, useNavigate, useLocation } from 'react-router-dom'
 import { LoginPage } from '../../../pages/auth/LoginPage'
 import { AuthProvider } from '../../../contexts/AuthContext'
-import { createClient, User, Session } from '@supabase/supabase-js'
+import { User, Session } from '@supabase/supabase-js'
 
 // Mock supabase client
 vi.mock('../../../lib/supabase', () => ({

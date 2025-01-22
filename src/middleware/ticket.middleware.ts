@@ -10,7 +10,6 @@ import { Request, Response, NextFunction } from 'express'
 import { PermissionError } from './permission.middleware'
 import { requirePermission } from './permission.middleware'
 import { TICKET_PRIORITY, TICKET_STATUS } from '../types/models/ticket.types'
-import type { Database } from '@/types/database.types'
 
 /**
  * Configuration options for ticket operation validation
@@ -28,14 +27,14 @@ type TicketWithTeam = {
   team_id: string | null
   teams: {
     lead_id: string | null
-  }
+  }[]
 }
 
 /**
  * Middleware to validate ticket creation data
  */
 export const validateTicketCreation = (options: TicketValidationOptions = {}) => {
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, _: Response, next: NextFunction) => {
     try {
       const { title, description, priority, team_id, category_id, assignee_id } = req.body
 
@@ -74,7 +73,7 @@ export const validateTicketCreation = (options: TicketValidationOptions = {}) =>
  * Middleware to validate ticket update data
  */
 export const validateTicketUpdate = (options: TicketValidationOptions = {}) => {
-  return async (req: Request, res: Response, next: NextFunction) => {
+  return async (req: Request, _: Response, next: NextFunction) => {
     try {
       const { priority, status, team_id, category_id, assignee_id } = req.body
 
@@ -108,7 +107,7 @@ export const validateTicketUpdate = (options: TicketValidationOptions = {}) => {
 /**
  * Middleware to check if user can access a ticket
  */
-export const canAccessTicket = async (req: Request, res: Response, next: NextFunction) => {
+export const canAccessTicket = async (req: Request, _: Response, next: NextFunction) => {
   try {
     const userId = req.user?.id
     const ticketId = req.params.ticketId
@@ -164,7 +163,7 @@ export const canAccessTicket = async (req: Request, res: Response, next: NextFun
 /**
  * Middleware to check if user can manage a ticket
  */
-export const canManageTicket = async (req: Request, res: Response, next: NextFunction) => {
+export const canManageTicket = async (req: Request, next: NextFunction) => {
   try {
     const userId = req.user?.id
     const ticketId = req.params.ticketId
@@ -200,7 +199,7 @@ export const canManageTicket = async (req: Request, res: Response, next: NextFun
 
     if (
       ticketData.assigned_to === userId ||
-      ticketData.teams?.lead_id === userId
+      ticketData.teams?.[0]?.lead_id === userId
     ) {
       return next()
     }

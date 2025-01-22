@@ -60,20 +60,6 @@ export type CheckPermissionParams = {
 }
 
 /**
- * Database representation of a permission
- * 
- * @interface
- * @property {string} id - Unique identifier for the permission
- * @property {string} name - Name of the permission
- * @property {string | null} description - Optional description of the permission
- */
-interface DatabasePermission {
-  id: string
-  name: string
-  description: string | null
-}
-
-/**
  * Response structure for role permission queries
  * 
  * @interface

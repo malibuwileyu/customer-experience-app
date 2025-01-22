@@ -36,7 +36,7 @@ import { ChevronDown } from 'lucide-react';
  * ```
  */
 export function Header() {
-  const { user, logout } = useAuth();
+  const { user, signOut } = useAuth();
   const { roles } = useUserRoles(user?.id);
 
   /**
@@ -48,7 +48,7 @@ export function Header() {
    */
   const handleLogout = async () => {
     try {
-      await logout();
+      await signOut();
     } catch (error) {
       console.error('Logout failed:', error);
     }

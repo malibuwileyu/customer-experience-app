@@ -4,10 +4,8 @@
  */
 
 import type { Database } from '@/types/database.types'
-import type { User } from './user.types'
 
 // Database types
-type DBTicket = Database['public']['Tables']['tickets']['Row']
 type DBTicketComment = Database['public']['Tables']['ticket_comments']['Row']
 type DBTicketStatusHistory = Database['public']['Tables']['ticket_status_history']['Row']
 type DBTicketAssignmentHistory = Database['public']['Tables']['ticket_assignment_history']['Row']

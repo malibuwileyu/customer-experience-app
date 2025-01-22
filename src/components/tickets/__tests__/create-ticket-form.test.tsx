@@ -1,6 +1,5 @@
-import { render, screen, waitFor } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { vi } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
+import { render, screen } from '@testing-library/react'
 import { CreateTicketForm } from '../create-ticket-form'
 import { useCreateTicket } from '../../../hooks/tickets/use-create-ticket'
 import type { CreateTicketDTO, Ticket } from '../../../types/models/ticket.types'

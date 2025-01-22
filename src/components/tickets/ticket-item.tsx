@@ -5,7 +5,7 @@ import { formatDistanceToNow } from 'date-fns'
 import { Card } from '../common/card'
 import { Badge } from '../common/badge'
 import { Button } from '../common/button'
-import { Avatar, AvatarImage, AvatarFallback } from '../common/avatar'
+import { Avatar, AvatarFallback } from '../common/avatar'
 import { Checkbox } from '../common/checkbox'
 import type { Ticket } from '../../types/models/ticket.types'
 
