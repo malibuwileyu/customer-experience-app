@@ -74,9 +74,8 @@ describe('Role Management Service', () => {
   })
 
   describe('checkPermission', () => {
-    it('should return true when user has permission', async () => {
+    it('should return true for valid permission', async () => {
       const mockUserId = 'test-user-id'
-      const mockPermission = 'tickets:create'
       
       vi.mocked(supabase.rpc).mockResolvedValue({
         data: true,
@@ -86,16 +85,15 @@ describe('Role Management Service', () => {
         statusText: 'OK'
       })
 
-      const result = await roleManagementService.checkPermission({
+      const hasPermission = await roleManagementService.checkPermission({
         userId: mockUserId,
-        permission: mockPermission
+        permission: 'view:tickets'
       })
-      expect(result).toBe(true)
+      expect(hasPermission).toBe(true)
     })
 
-    it('should return false when user does not have permission', async () => {
+    it('should return false for invalid permission', async () => {
       const mockUserId = 'test-user-id'
-      const mockPermission = 'tickets:create'
       
       vi.mocked(supabase.rpc).mockResolvedValue({
         data: false,
@@ -105,11 +103,69 @@ describe('Role Management Service', () => {
         statusText: 'OK'
       })
 
-      const result = await roleManagementService.checkPermission({
+      const hasPermission = await roleManagementService.checkPermission({
         userId: mockUserId,
-        permission: mockPermission
+        permission: 'invalid:permission'
       })
-      expect(result).toBe(false)
+      expect(hasPermission).toBe(false)
+    })
+  })
+
+  describe('getRolePermissions', () => {
+    it('should return all permissions for a role', async () => {
+      vi.mocked(supabase.from).mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({
+            data: [
+              {
+                permissions: {
+                  id: '1',
+                  name: 'manage:users',
+                  description: 'Can manage users'
+                }
+              }
+            ],
+            error: null
+          })
+        })
+      } as any)
+
+      const permissions = await roleManagementService.getRolePermissions('admin')
+      expect(permissions).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            name: 'manage:users'
+          })
+        ])
+      )
+    })
+
+    it('should return limited permissions for customer role', async () => {
+      vi.mocked(supabase.from).mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({
+            data: [
+              {
+                permissions: {
+                  id: '2',
+                  name: 'view:tickets',
+                  description: 'Can view tickets'
+                }
+              }
+            ],
+            error: null
+          })
+        })
+      } as any)
+
+      const permissions = await roleManagementService.getRolePermissions('customer')
+      expect(permissions).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            name: 'view:tickets'
+          })
+        ])
+      )
     })
   })
 

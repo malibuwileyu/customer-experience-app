@@ -49,16 +49,22 @@ export function CreateTicketForm() {
   const form = useForm<TicketFormData>({
     resolver: zodResolver(ticketFormSchema),
     defaultValues,
+    mode: 'onSubmit',
+    reValidateMode: 'onSubmit',
   })
 
-  const onSubmit = (data: TicketFormData) => {
-    // Remove empty optional fields
-    const cleanedData = {
-      ...data,
-      internal_notes: data.internal_notes?.trim() || undefined,
-      attachments: data.attachments?.length ? data.attachments : undefined,
+  const onSubmit = async (data: TicketFormData) => {
+    try {
+      // Remove empty optional fields
+      const cleanedData = {
+        ...data,
+        internal_notes: data.internal_notes?.trim() || undefined,
+        attachments: data.attachments?.length ? data.attachments : undefined,
+      }
+      await createTicketMutate(cleanedData)
+    } catch (err) {
+      console.error('Error submitting form:', err)
     }
-    createTicketMutate(cleanedData)
   }
 
   const handleReset = () => {
@@ -78,7 +84,7 @@ export function CreateTicketForm() {
       </CardHeader>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
+        <form onSubmit={form.handleSubmit(onSubmit)} noValidate>
           <CardContent className="space-y-6">
             {error && (
               <Alert variant="destructive">
@@ -91,20 +97,24 @@ export function CreateTicketForm() {
             <FormField
               control={form.control}
               name="title"
-              render={({ field }) => (
+              render={({ field, fieldState }) => (
                 <FormItem>
                   <FormLabel>Title</FormLabel>
                   <FormControl>
                     <Input 
                       placeholder="Brief summary of the issue" 
-                      aria-invalid={!!form.formState.errors.title}
+                      aria-invalid={!!fieldState.error}
                       {...field} 
                     />
                   </FormControl>
                   <FormDescription>
                     A clear and concise title helps us understand your issue quickly.
                   </FormDescription>
-                  <FormMessage />
+                  {fieldState.error && (
+                    <FormMessage role="alert">
+                      {fieldState.error.message}
+                    </FormMessage>
+                  )}
                 </FormItem>
               )}
             />
@@ -112,21 +122,25 @@ export function CreateTicketForm() {
             <FormField
               control={form.control}
               name="description"
-              render={({ field }) => (
+              render={({ field, fieldState }) => (
                 <FormItem>
                   <FormLabel>Description</FormLabel>
                   <FormControl>
                     <Textarea 
                       placeholder="Detailed description of the issue"
                       className="min-h-[120px]"
-                      aria-invalid={!!form.formState.errors.description}
+                      aria-invalid={!!fieldState.error}
                       {...field}
                     />
                   </FormControl>
                   <FormDescription>
                     Please provide all relevant details about the issue.
                   </FormDescription>
-                  <FormMessage />
+                  {fieldState.error && (
+                    <FormMessage role="alert">
+                      {fieldState.error.message}
+                    </FormMessage>
+                  )}
                 </FormItem>
               )}
             />

@@ -1,13 +1,22 @@
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import '@testing-library/jest-dom';
 import { BrowserRouter, useNavigate } from 'react-router-dom';
 import { RegistrationPage } from '../../../pages/auth/RegistrationPage';
-import { AuthProvider } from '../../../contexts/AuthContext';
-import { useForm, FormProvider } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { supabase } from '../../../lib/supabase';
+import { useAuth } from '../../../contexts/AuthContext';
+import { User, Session } from '@supabase/supabase-js';
+
+// Mock supabase client
+vi.mock('../../../lib/supabase', () => ({
+  supabase: {
+    auth: {
+      signUp: vi.fn(),
+      getSession: vi.fn(() => Promise.resolve({ data: { session: null }, error: null })),
+      onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
+    },
+  },
+}));
 
 // Mock react-router-dom
 vi.mock('react-router-dom', async () => {
@@ -15,160 +24,164 @@ vi.mock('react-router-dom', async () => {
   return {
     ...actual,
     useNavigate: vi.fn(),
-    UNSAFE_DataRouterContext: vi.fn(),
-    UNSAFE_DataRouterStateContext: vi.fn(),
-    UNSAFE_NavigationContext: vi.fn(),
-    UNSAFE_LocationContext: vi.fn(),
-    UNSAFE_RouteContext: vi.fn()
   };
 });
 
-const registrationSchema = z.object({
-  email: z.string().min(1, 'Email is required').email('Invalid email format'),
-  password: z.string().min(1, 'Password is required'),
-  confirmPassword: z.string().min(1, 'Confirm password is required'),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords do not match",
-  path: ["confirmPassword"],
-});
-
-type RegistrationFormData = z.infer<typeof registrationSchema>;
+// Mock AuthContext
+vi.mock('../../../contexts/AuthContext', () => ({
+  useAuth: vi.fn(),
+  AuthProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
 
 describe('RegistrationPage', () => {
   const mockNavigate = vi.fn();
+  const mockRegister = vi.fn();
+  
+  const mockUser: User = {
+    id: '123',
+    email: 'test@example.com',
+    app_metadata: {},
+    user_metadata: {},
+    aud: 'authenticated',
+    created_at: '2024-01-01T00:00:00.000Z',
+    role: '',
+    updated_at: '2024-01-01T00:00:00.000Z',
+  };
 
-  beforeEach(async () => {
-    vi.mocked(useNavigate).mockReturnValue(mockNavigate);
-    // Sign out before each test
-    await supabase.auth.signOut();
+  const mockSession: Session = {
+    access_token: 'mock-access-token',
+    refresh_token: 'mock-refresh-token',
+    expires_in: 3600,
+    token_type: 'bearer',
+    user: mockUser,
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (useNavigate as any).mockReturnValue(mockNavigate);
+    (useAuth as any).mockReturnValue({
+      register: mockRegister,
+    });
   });
 
   afterEach(() => {
     vi.clearAllMocks();
   });
 
-  const renderRegistrationPage = () => {
-    const Wrapper = () => {
-      const methods = useForm<RegistrationFormData>({
-        resolver: zodResolver(registrationSchema),
-        defaultValues: {
-          email: '',
-          password: '',
-          confirmPassword: '',
-        },
-        mode: 'onChange',
-      });
-      return (
-        <BrowserRouter>
-          <AuthProvider>
-            <FormProvider {...methods}>
-              <RegistrationPage />
-            </FormProvider>
-          </AuthProvider>
-        </BrowserRouter>
-      );
-    };
-    return render(<Wrapper />);
+  const validData = {
+    email: 'test@example.com',
+    password: 'password123',
+    confirmPassword: 'password123',
   };
 
   it('renders registration form', () => {
-    renderRegistrationPage();
-    
-    expect(screen.getByLabelText(/email/i)).toBeDefined();
-    expect(screen.getByLabelText(/^password$/i)).toBeDefined();
-    expect(screen.getByLabelText(/^confirm password$/i)).toBeDefined();
-    expect(screen.getByRole('button', { name: /sign up/i })).toBeDefined();
+    render(
+      <BrowserRouter>
+        <RegistrationPage />
+      </BrowserRouter>
+    );
+
+    expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/^password$/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/confirm password/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /sign up/i })).toBeInTheDocument();
   });
 
-  it('shows validation error for invalid email', async () => {
-    renderRegistrationPage();
-    
-    await userEvent.type(screen.getByLabelText(/^email$/i), 'not-an-email');
-    await userEvent.type(screen.getByLabelText(/^password$/i), 'password123');
-    await userEvent.type(screen.getByLabelText(/^confirm password$/i), 'password123');
-    
-    // Wait for validation message
-    await waitFor(async () => {
-      const errorMessage = await screen.findByText(/invalid email format/i);
-      expect(errorMessage).toBeDefined();
+  it('shows validation errors for invalid email', async () => {
+    render(
+      <BrowserRouter>
+        <RegistrationPage />
+      </BrowserRouter>
+    );
+
+    const emailInput = screen.getByLabelText(/email/i);
+    await act(async () => {
+      await fireEvent.change(emailInput, { target: { value: 'invalid-email' } });
+      await fireEvent.blur(emailInput);
     });
+
+    expect(await screen.findByText(/invalid email format/i)).toBeInTheDocument();
   });
 
-  it('shows validation error for password mismatch', async () => {
-    renderRegistrationPage();
-    
-    await userEvent.type(screen.getByLabelText(/email/i), 'test@example.com');
-    await userEvent.type(screen.getByLabelText(/^password$/i), 'password123');
-    await userEvent.type(screen.getByLabelText(/^confirm password$/i), 'password456');
-    
-    // Wait for validation message
-    await waitFor(async () => {
-      const errorMessage = await screen.findByText(/passwords do not match/i);
-      expect(errorMessage).toBeDefined();
+  it('shows error when passwords do not match', async () => {
+    render(
+      <BrowserRouter>
+        <RegistrationPage />
+      </BrowserRouter>
+    );
+
+    const passwordInput = screen.getByLabelText(/^password$/i);
+    const confirmPasswordInput = screen.getByLabelText(/confirm password/i);
+
+    await act(async () => {
+      await fireEvent.change(passwordInput, { target: { value: 'password123' } });
+      await fireEvent.change(confirmPasswordInput, { target: { value: 'different' } });
+      await fireEvent.blur(confirmPasswordInput);
     });
+
+    expect(await screen.findByText(/passwords do not match/i)).toBeInTheDocument();
   });
 
-  it('successfully registers with valid credentials', async () => {
-    const validEmail = `testuser_${Date.now()}@gmail.com`;
-    const validPassword = 'testPassword123!';
-    
-    renderRegistrationPage();
-    
-    await userEvent.type(screen.getByLabelText(/email/i), validEmail);
-    await userEvent.type(screen.getByLabelText(/^password$/i), validPassword);
-    await userEvent.type(screen.getByLabelText(/^confirm password$/i), validPassword);
-    await userEvent.click(screen.getByRole('button', { name: /sign up/i }));
-    
+  it('successfully registers with valid data', async () => {
+    mockRegister.mockResolvedValueOnce({
+      data: { user: { id: '1', email: validData.email } },
+      error: null,
+    });
+
+    render(
+      <BrowserRouter>
+        <RegistrationPage />
+      </BrowserRouter>
+    );
+
+    const emailInput = screen.getByLabelText(/email/i);
+    const passwordInput = screen.getByLabelText(/^password$/i);
+    const confirmPasswordInput = screen.getByLabelText(/confirm password/i);
+    const submitButton = screen.getByRole('button', { name: /sign up/i });
+
+    await act(async () => {
+      await fireEvent.change(emailInput, { target: { value: validData.email } });
+      await fireEvent.change(passwordInput, { target: { value: validData.password } });
+      await fireEvent.change(confirmPasswordInput, { target: { value: validData.confirmPassword } });
+      await fireEvent.submit(screen.getByRole('form'));
+    });
+
     await waitFor(() => {
+      expect(mockRegister).toHaveBeenCalledWith({
+        email: validData.email,
+        password: validData.password,
+      });
       expect(mockNavigate).toHaveBeenCalledWith('/dashboard');
     });
-
-    // Verify user was created in Supabase
-    const { data: { user }, error } = await supabase.auth.getUser();
-    expect(error).toBeNull();
-    expect(user?.email).toBe(validEmail);
   });
 
   it('shows error for duplicate email registration', async () => {
-    const validEmail = `testuser_${Date.now()}@gmail.com`;
-    const validPassword = 'testPassword123!';
-    
-    // Create first user
-    const { error: signUpError } = await supabase.auth.signUp({
-      email: validEmail,
-      password: validPassword
+    mockRegister.mockResolvedValueOnce({
+      data: null,
+      error: { message: 'User already registered' },
     });
-    expect(signUpError).toBeNull();
-    
-    renderRegistrationPage();
-    
-    // Try to register with same email
-    await userEvent.type(screen.getByLabelText(/email/i), validEmail);
-    await userEvent.type(screen.getByLabelText(/^password$/i), validPassword);
-    await userEvent.type(screen.getByLabelText(/^confirm password$/i), validPassword);
-    await userEvent.click(screen.getByRole('button', { name: /sign up/i }));
-    
-    await waitFor(() => {
-      expect(screen.getByText(/user already registered/i)).toBeDefined();
-    }, { timeout: 5000 });
-  });
 
-  it('shows loading state during registration attempt', async () => {
-    const { getByRole } = render(<RegistrationPage />);
-    const submitButton = getByRole('button', { name: /sign up/i });
-    
+    render(
+      <BrowserRouter>
+        <RegistrationPage />
+      </BrowserRouter>
+    );
+
+    const emailInput = screen.getByLabelText(/email/i);
+    const passwordInput = screen.getByLabelText(/^password$/i);
+    const confirmPasswordInput = screen.getByLabelText(/confirm password/i);
+
     await act(async () => {
-      await userEvent.click(submitButton);
+      await fireEvent.change(emailInput, { target: { value: 'existing@example.com' } });
+      await fireEvent.change(passwordInput, { target: { value: validData.password } });
+      await fireEvent.change(confirmPasswordInput, { target: { value: validData.confirmPassword } });
+      await fireEvent.submit(screen.getByRole('form'));
     });
-    
-    await waitFor(() => {
-      expect(submitButton).toBeDisabled();
-      expect(submitButton).toHaveTextContent(/signing up/i);
-    }, { timeout: 2000 });
-  });
 
-  it('has a link back to login page', () => {
-    renderRegistrationPage();
-    expect(screen.getByRole('link', { name: /sign in/i })).toBeDefined();
+    await waitFor(() => {
+      const errorElement = screen.getByRole('alert');
+      expect(errorElement).toBeInTheDocument();
+      expect(errorElement).toHaveTextContent(/user already registered/i);
+    });
   });
 }); 

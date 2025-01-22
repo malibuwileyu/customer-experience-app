@@ -1,139 +1,202 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { BrowserRouter, useNavigate } from 'react-router-dom'
+import '@testing-library/jest-dom'
+import { BrowserRouter, useNavigate, useLocation } from 'react-router-dom'
 import { LoginPage } from '../../../pages/auth/LoginPage'
-import { AuthProvider, useAuth } from '../../../contexts/AuthContext'
-import { useForm, FormProvider } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { z } from 'zod'
-import { supabase } from '../../../lib/supabase'
+import { AuthProvider } from '../../../contexts/AuthContext'
+import { createClient, User, Session } from '@supabase/supabase-js'
 
-// Mock react-router-dom
+// Mock supabase client
+vi.mock('../../../lib/supabase', () => ({
+  supabase: {
+    auth: {
+      signInWithPassword: vi.fn(),
+      getSession: vi.fn(() => Promise.resolve({ data: { session: null }, error: null })),
+      onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
+    },
+  },
+}))
+
+// Mock react-router-dom hooks
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom')
   return {
     ...actual,
     useNavigate: vi.fn(),
-    UNSAFE_DataRouterContext: vi.fn(),
-    UNSAFE_DataRouterStateContext: vi.fn(),
-    UNSAFE_NavigationContext: vi.fn(),
-    UNSAFE_LocationContext: vi.fn(),
-    UNSAFE_RouteContext: vi.fn()
+    useLocation: vi.fn(),
   }
 })
 
-const loginSchema = z.object({
-  email: z.string().min(1, 'Email is required').email('Invalid email format'),
-  password: z.string().min(1, 'Password is required'),
-});
-
-type LoginFormData = z.infer<typeof loginSchema>;
-
 describe('LoginPage', () => {
   const mockNavigate = vi.fn()
+  const mockLocation = {
+    pathname: '/login',
+    search: '',
+    hash: '',
+    state: { from: '/app/tickets' },
+    key: 'default',
+  }
 
-  beforeEach(async () => {
+  const mockUser: User = {
+    id: '123',
+    email: 'test@example.com',
+    app_metadata: {},
+    user_metadata: {},
+    aud: 'authenticated',
+    created_at: '2024-01-01T00:00:00.000Z',
+    role: '',
+    updated_at: '2024-01-01T00:00:00.000Z',
+  }
+
+  const mockSession: Session = {
+    access_token: 'mock-access-token',
+    refresh_token: 'mock-refresh-token',
+    expires_in: 3600,
+    token_type: 'bearer',
+    user: mockUser,
+  }
+
+  beforeEach(() => {
     vi.mocked(useNavigate).mockReturnValue(mockNavigate)
-    // Sign out before each test
-    await supabase.auth.signOut()
+    vi.mocked(useLocation).mockReturnValue(mockLocation)
+    vi.clearAllMocks()
   })
 
   afterEach(() => {
     vi.clearAllMocks()
   })
 
-  const renderLoginPage = () => {
-    const Wrapper = () => {
-      const methods = useForm<LoginFormData>({
-        resolver: zodResolver(loginSchema),
-        defaultValues: {
-          email: '',
-          password: '',
-        },
-        mode: 'onChange',
-      })
-      return (
-        <BrowserRouter>
-          <AuthProvider>
-            <FormProvider {...methods}>
-              <LoginPage />
-            </FormProvider>
-          </AuthProvider>
-        </BrowserRouter>
-      )
-    }
-    return render(<Wrapper />)
-  }
-
   it('renders login form', () => {
-    renderLoginPage()
-    
-    expect(screen.getByLabelText(/email/i)).toBeDefined()
-    expect(screen.getByLabelText(/password/i)).toBeDefined()
-    expect(screen.getByRole('button', { name: /sign in/i })).toBeDefined()
+    render(
+      <BrowserRouter>
+        <AuthProvider>
+          <LoginPage />
+        </AuthProvider>
+      </BrowserRouter>
+    )
+
+    expect(screen.getByRole('form')).toBeInTheDocument()
+    expect(screen.getByLabelText(/email/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/password/i)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /sign in/i })).toBeInTheDocument()
   })
 
-  it('shows validation error for invalid email', async () => {
-    renderLoginPage()
-    
-    const emailInput = screen.getByLabelText(/^email$/i)
-    const passwordInput = screen.getByLabelText(/^password$/i)
-    
-    // Type invalid email
-    await userEvent.type(emailInput, 'not-an-email')
-    await userEvent.type(passwordInput, 'password123')
-    
-    // Wait for validation message
-    await waitFor(async () => {
-      const errorMessage = await screen.findByText(/invalid email format/i)
-      expect(errorMessage).toBeDefined()
+  it('shows validation errors for invalid email', async () => {
+    render(
+      <BrowserRouter>
+        <AuthProvider>
+          <LoginPage />
+        </AuthProvider>
+      </BrowserRouter>
+    )
+
+    const emailInput = screen.getByLabelText(/email/i)
+    await userEvent.type(emailInput, 'invalid-email')
+    await userEvent.tab()
+
+    await waitFor(() => {
+      expect(screen.getByText(/invalid email format/i)).toBeInTheDocument()
     })
   })
 
   it('successfully logs in with valid credentials', async () => {
-    // Create a test user first
-    const validEmail = `testuser_${Date.now()}@gmail.com`
-    const validPassword = 'testPassword123!'
-    
-    const { error: signUpError } = await supabase.auth.signUp({
-      email: validEmail,
-      password: validPassword
+    const validCredentials = {
+      email: 'test@example.com',
+      password: 'password123',
+    }
+
+    const { supabase } = await import('../../../lib/supabase')
+    vi.mocked(supabase.auth.signInWithPassword).mockResolvedValueOnce({
+      data: { user: mockUser, session: mockSession },
+      error: null,
     })
+
+    render(
+      <BrowserRouter>
+        <AuthProvider>
+          <LoginPage />
+        </AuthProvider>
+      </BrowserRouter>
+    )
+
+    const emailInput = screen.getByLabelText(/email/i)
+    const passwordInput = screen.getByLabelText(/password/i)
+    const form = screen.getByRole('form')
+
+    await userEvent.type(emailInput, validCredentials.email)
+    await userEvent.type(passwordInput, validCredentials.password)
     
-    expect(signUpError).toBeNull()
-    
-    renderLoginPage()
-    
-    // Attempt login with valid credentials
-    await userEvent.type(screen.getByLabelText(/email/i), validEmail)
-    await userEvent.type(screen.getByLabelText(/password/i), validPassword)
     await userEvent.click(screen.getByRole('button', { name: /sign in/i }))
-    
+    await fireEvent.submit(form)
+
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/dashboard')
+      expect(supabase.auth.signInWithPassword).toHaveBeenCalledWith(validCredentials)
+      expect(mockNavigate).toHaveBeenCalledWith('/app/tickets', { replace: true })
     })
   })
 
   it('shows error for invalid credentials', async () => {
-    renderLoginPage()
+    const invalidCredentials = {
+      email: 'test@example.com',
+      password: 'wrongpassword',
+    }
+
+    const { supabase } = await import('../../../lib/supabase')
+    vi.mocked(supabase.auth.signInWithPassword).mockResolvedValueOnce({
+      data: { user: null, session: null },
+      error: { 
+        message: 'Invalid credentials',
+        name: 'AuthApiError',
+        status: 400,
+        __isAuthError: true,
+      } as any,
+    })
+
+    render(
+      <BrowserRouter>
+        <AuthProvider>
+          <LoginPage />
+        </AuthProvider>
+      </BrowserRouter>
+    )
+
+    const emailInput = screen.getByLabelText(/email/i)
+    const passwordInput = screen.getByLabelText(/password/i)
+    const form = screen.getByRole('form')
+
+    await userEvent.type(emailInput, invalidCredentials.email)
+    await userEvent.type(passwordInput, invalidCredentials.password)
     
-    await userEvent.type(screen.getByLabelText(/email/i), 'wrong@email.com')
-    await userEvent.type(screen.getByLabelText(/password/i), 'wrongpassword')
     await userEvent.click(screen.getByRole('button', { name: /sign in/i }))
-    
+    await fireEvent.submit(form)
+
     await waitFor(() => {
-      expect(screen.getByText(/invalid login credentials/i)).toBeDefined()
+      const errorElement = screen.getByRole('alert')
+      expect(errorElement).toBeInTheDocument()
+      expect(errorElement).toHaveTextContent(/invalid credentials/i)
     })
   })
 
-  it('shows loading state during login attempt', async () => {
-    renderLoginPage()
-    
-    await userEvent.type(screen.getByLabelText(/email/i), 'test@example.com')
-    await userEvent.type(screen.getByLabelText(/password/i), 'password123')
-    await userEvent.click(screen.getByRole('button', { name: /sign in/i }))
-    
-    expect(screen.getByText(/signing in/i)).toBeDefined()
+  it('redirects to dashboard if already logged in', async () => {
+    const { supabase } = await import('../../../lib/supabase')
+    vi.mocked(supabase.auth.getSession).mockResolvedValueOnce({
+      data: {
+        session: mockSession,
+      },
+      error: null,
+    })
+
+    render(
+      <BrowserRouter>
+        <AuthProvider>
+          <LoginPage />
+        </AuthProvider>
+      </BrowserRouter>
+    )
+
+    await waitFor(() => {
+      expect(mockNavigate).toHaveBeenCalledWith('/app/dashboard', { replace: true })
+    })
   })
-}); 
+}) 

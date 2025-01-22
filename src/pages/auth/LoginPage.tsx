@@ -24,7 +24,7 @@ const loginSchema = z.object({
 type LoginFormData = z.infer<typeof loginSchema>;
 
 export function LoginPage() {
-  const { login, user } = useAuth();
+  const { signInWithPassword, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const returnUrl = (location.state as { from?: string })?.from || '/app/dashboard';
@@ -49,14 +49,21 @@ export function LoginPage() {
   const onSubmit = async (data: LoginFormData) => {
     try {
       setError(null);
-      await login(data);
+      const { data: authData, error: signInError } = await signInWithPassword(data);
+      
+      if (signInError) {
+        setError(signInError.message);
+        return;
+      }
+
+      if (!authData.user) {
+        setError('Invalid credentials');
+        return;
+      }
+
       navigate(returnUrl, { replace: true });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Invalid credentials');
-      form.setError('root', {
-        type: 'manual',
-        message: err instanceof Error ? err.message : 'Invalid credentials',
-      });
+      setError(err instanceof Error ? err.message : 'An error occurred');
     }
   };
 
@@ -72,6 +79,11 @@ export function LoginPage() {
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" role="form">
+            {error && (
+              <div role="alert" className="p-3 text-sm text-red-500 bg-red-50 rounded-md">
+                {error}
+              </div>
+            )}
             <FormField
               control={form.control}
               name="email"
@@ -107,12 +119,6 @@ export function LoginPage() {
                 </FormItem>
               )}
             />
-
-            {error && (
-              <div className="text-sm font-medium text-destructive">
-                {error}
-              </div>
-            )}
 
             <Button
               type="submit"

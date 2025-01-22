@@ -17,17 +17,20 @@ import { User, AuthError, Session } from '@supabase/supabase-js';
  * @property {User | null} user - Current authenticated user or null
  * @property {Session | null} session - Current auth session or null
  * @property {boolean} isLoading - Whether auth operations are in progress
- * @property {Function} login - Email/password login function
- * @property {Function} logout - Logout function
- * @property {Function} register - User registration function
+ * @property {Function} signInWithPassword - Email/password login function
+ * @property {Function} signOut - Logout function
+ * @property {Function} signUp - User registration function
  */
 export interface AuthContextType {
   user: User | null;
   session: Session | null;
   isLoading: boolean;
-  login: (credentials: { email: string; password: string }) => Promise<void>;
-  logout: () => Promise<void>;
-  register: (credentials: { email: string; password: string }) => Promise<{ 
+  signInWithPassword: (credentials: { email: string; password: string }) => Promise<{
+    data: { user: User | null; session: Session | null };
+    error: AuthError | null;
+  }>;
+  signOut: () => Promise<void>;
+  signUp: (credentials: { email: string; password: string }) => Promise<{ 
     data: { user: User | null } | null;
     error: AuthError | null;
   }>;
@@ -88,23 +91,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * 
    * @async
    * @param {{ email: string; password: string }} credentials - Login credentials
+   * @returns {Promise<{ data: { user: User | null; session: Session | null }; error: AuthError | null }>}
    * @throws {AuthError} When login fails
    */
-  const login = async (credentials: { email: string; password: string }) => {
+  const signInWithPassword = async (credentials: { email: string; password: string }) => {
     try {
       setIsLoading(true);
-      const { data, error } = await supabase.auth.signInWithPassword(credentials);
-
-      if (error) throw error;
+      const result = await supabase.auth.signInWithPassword(credentials);
 
       // Update session and user immediately after successful login
-      if (data.session) {
-        setSession(data.session);
-        setUser(data.session.user);
+      if (result.data.session) {
+        setSession(result.data.session);
+        setUser(result.data.session.user);
       }
+
+      return result;
     } catch (err) {
       console.error('Login error:', err);
-      throw err;
+      return {
+        data: { user: null, session: null },
+        error: err instanceof AuthError ? err : new AuthError('Login failed')
+      };
     } finally {
       setIsLoading(false);
     }
@@ -116,7 +123,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * @async
    * @throws {AuthError} When logout fails
    */
-  const logout = async () => {
+  const signOut = async () => {
     try {
       setIsLoading(true);
       const { error } = await supabase.auth.signOut();
@@ -141,7 +148,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * @returns {Promise<{ data: { user: User | null } | null; error: AuthError | null }>}
    *   Registration result with user data or error
    */
-  const register = async (credentials: { email: string; password: string }) => {
+  const signUp = async (credentials: { email: string; password: string }) => {
     try {
       const { data, error } = await supabase.auth.signUp({
         email: credentials.email,
@@ -168,9 +175,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     session,
     isLoading,
-    login,
-    logout,
-    register,
+    signInWithPassword,
+    signOut,
+    signUp,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -185,11 +192,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
  * @example
  * ```tsx
  * function UserProfile() {
- *   const { user, logout } = useAuth();
+ *   const { user, signOut } = useAuth();
  *   return user ? (
  *     <div>
  *       <p>Welcome, {user.email}</p>
- *       <button onClick={logout}>Logout</button>
+ *       <button onClick={signOut}>Logout</button>
  *     </div>
  *   ) : null;
  * }

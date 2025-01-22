@@ -21,14 +21,25 @@ import { create } from 'zustand'
  * @property {Function} actions.toggleSidebar - Toggles sidebar visibility
  * @property {Function} actions.setSidebarOpen - Sets sidebar visibility directly
  */
+export interface Toast {
+  id: string
+  title: string
+  description?: string
+  type?: 'default' | 'success' | 'error' | 'warning'
+  duration?: number
+}
+
 export interface UIState {
   theme: 'light' | 'dark'
   sidebarOpen: boolean
   isLoading: boolean
+  toasts: Toast[]
   actions: {
     toggleTheme: () => void
     toggleSidebar: () => void
     setSidebarOpen: (open: boolean) => void
+    toast: (toast: Omit<Toast, 'id'>) => void
+    dismissToast: (id: string) => void
   }
 }
 
@@ -72,6 +83,7 @@ export const useUIStore = create<UIState>((set) => ({
   /** Default loading state */
   isLoading: false,
   /** UI state actions */
+  toasts: [],
   actions: {
     /** Toggles between light and dark themes */
     toggleTheme: () =>
@@ -88,5 +100,13 @@ export const useUIStore = create<UIState>((set) => ({
       set(() => ({
         sidebarOpen: open,
       })),
+    toast: (toast) => set((state) => ({
+      toasts: [...state.toasts, { ...toast, id: Math.random().toString(36).slice(2) }]
+    })),
+    dismissToast: (id) => set((state) => ({
+      toasts: state.toasts.filter((t) => t.id !== id)
+    }))
   },
 }))
+
+export default useUIStore

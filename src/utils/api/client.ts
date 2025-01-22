@@ -6,18 +6,22 @@
  * for authentication, error handling, and response transformation.
  */
 
-import axios, { AxiosError, AxiosInstance, AxiosResponse, AxiosRequestConfig } from 'axios';
+import axios, { AxiosError, InternalAxiosRequestConfig, AxiosResponse, AxiosRequestConfig } from 'axios';
 import { ApiResponse } from '../../types/common';
-import { AuthState, useAuthStore } from '../../stores/auth.store';
-import { UIState, useUIStore } from '../../stores/ui.store';
+import { useAuthStore, AuthStore } from '../../stores/auth.store';
+import { useUIStore } from '../../stores/ui.store';
+
+interface ErrorResponse {
+  message?: string
+  [key: string]: unknown
+}
 
 /**
- * Creates an Axios instance with default configuration
+ * Creates an API client with authentication and error handling
  * 
- * @function createAPIClient
- * @returns {AxiosInstance} Configured Axios instance
+ * @returns Axios instance configured with interceptors
  */
-function createAPIClient(): AxiosInstance {
+export function createAPIClient() {
   const client = axios.create({
     baseURL: import.meta.env.VITE_API_URL,
     timeout: 10000,
@@ -28,59 +32,44 @@ function createAPIClient(): AxiosInstance {
 
   // Request interceptor for auth headers
   client.interceptors.request.use(
-    (config: AxiosRequestConfig) => {
-      const token = (useAuthStore.getState() as AuthState).user?.session?.access_token;
-      if (token && config.headers) {
-        config.headers.Authorization = `Bearer ${token}`;
+    (config: InternalAxiosRequestConfig) => {
+      const authStore = useAuthStore.getState() as AuthStore;
+      
+      if (authStore.session?.access_token) {
+        config.headers.Authorization = `Bearer ${authStore.session.access_token}`;
       }
+      
       return config;
     },
-    (error: Error) => Promise.reject(error)
+    (error: AxiosError) => {
+      useUIStore.getState().actions.toast({
+        title: 'Request Error',
+        description: error.message,
+        type: 'error'
+      });
+      return Promise.reject(error);
+    }
   );
 
   // Response interceptor for error handling
   client.interceptors.response.use(
-    (response: AxiosResponse) => response.data,
-    (error: AxiosError) => {
-      const { addToast } = useUIStore.getState() as UIState & { addToast: UIState['addToast'] };
+    (response: AxiosResponse) => response,
+    (error: AxiosError<ErrorResponse>) => {
+      const { response } = error;
       
-      // Handle different error scenarios
-      if (error.response) {
-        // Server responded with error
-        const status = error.response.status;
-        if (status === 401) {
-          useAuthStore.getState().reset();
-          addToast({
-            type: 'error',
-            message: 'Session expired. Please log in again.',
-            duration: 5000,
-          });
-        } else if (status === 403) {
-          addToast({
-            type: 'error',
-            message: 'You do not have permission to perform this action.',
-            duration: 5000,
-          });
-        } else {
-          addToast({
-            type: 'error',
-            message: 'An error occurred. Please try again.',
-            duration: 5000,
-          });
-        }
-      } else if (error.request) {
-        // Request made but no response
-        addToast({
-          type: 'error',
-          message: 'Network error. Please check your connection.',
-          duration: 5000,
+      if (response?.status === 401) {
+        const authStore = useAuthStore.getState() as AuthStore;
+        authStore.reset(); // Reset auth state on session expiry
+        useUIStore.getState().actions.toast({
+          title: 'Session Expired',
+          description: 'Please sign in again',
+          type: 'error'
         });
       } else {
-        // Request setup error
-        addToast({
-          type: 'error',
-          message: 'An error occurred. Please try again.',
-          duration: 5000,
+        useUIStore.getState().actions.toast({
+          title: 'Error',
+          description: response?.data?.message || error.message,
+          type: 'error'
         });
       }
 
@@ -107,7 +96,7 @@ export const apiClient = createAPIClient();
  * @param {AxiosRequestConfig} [config] - Additional Axios config
  * @returns {Promise<ApiResponse<T>>} API response
  */
-export async function get<T>(url: string, config: AxiosRequestConfig = {}): Promise<ApiResponse<T>> {
+export async function get<T>(url: string, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
   return apiClient.get(url, config);
 }
 
@@ -122,7 +111,7 @@ export async function get<T>(url: string, config: AxiosRequestConfig = {}): Prom
  * @param {AxiosRequestConfig} [config] - Additional Axios config
  * @returns {Promise<ApiResponse<T>>} API response
  */
-export async function post<T>(url: string, data: unknown = {}, config: AxiosRequestConfig = {}): Promise<ApiResponse<T>> {
+export async function post<T>(url: string, data: unknown = {}, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
   return apiClient.post(url, data, config);
 }
 
@@ -137,7 +126,7 @@ export async function post<T>(url: string, data: unknown = {}, config: AxiosRequ
  * @param {AxiosRequestConfig} [config] - Additional Axios config
  * @returns {Promise<ApiResponse<T>>} API response
  */
-export async function put<T>(url: string, data: unknown = {}, config: AxiosRequestConfig = {}): Promise<ApiResponse<T>> {
+export async function put<T>(url: string, data: unknown = {}, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
   return apiClient.put(url, data, config);
 }
 
@@ -151,6 +140,8 @@ export async function put<T>(url: string, data: unknown = {}, config: AxiosReque
  * @param {AxiosRequestConfig} [config] - Additional Axios config
  * @returns {Promise<ApiResponse<T>>} API response
  */
-export async function del<T>(url: string, config: AxiosRequestConfig = {}): Promise<ApiResponse<T>> {
+export async function del<T>(url: string, config?: AxiosRequestConfig): Promise<ApiResponse<T>> {
   return apiClient.delete(url, config);
-} 
+}
+
+export default createAPIClient(); 

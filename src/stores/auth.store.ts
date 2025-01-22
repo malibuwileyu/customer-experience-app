@@ -9,7 +9,25 @@
 
 import { create } from 'zustand';
 import { User, Session } from '@supabase/supabase-js';
-import { AuthState, Profile } from '../types/auth.types';
+import { Profile } from '../types/auth.types';
+
+/**
+ * Base authentication state interface
+ * 
+ * @interface
+ * @property {User | null} user - Current authenticated user
+ * @property {Profile | null} profile - User's profile data
+ * @property {Session | null} session - Current auth session
+ * @property {boolean} loading - Loading state indicator
+ * @property {Error | null} error - Current error state
+ */
+export interface AuthState {
+  user: User | null;
+  profile: Profile | null;
+  session: Session | null;
+  loading: boolean;
+  error: Error | null;
+}
 
 /**
  * Authentication store interface extending base auth state
@@ -22,7 +40,7 @@ import { AuthState, Profile } from '../types/auth.types';
  * @property {Function} setError - Updates error state
  * @property {Function} reset - Resets store to initial state
  */
-interface AuthStore extends AuthState {
+export interface AuthStore extends AuthState {
   setUser: (user: User | null) => void;
   setProfile: (profile: Profile | null) => void;
   setLoading: (loading: boolean) => void;
@@ -37,6 +55,7 @@ interface AuthStore extends AuthState {
 const initialState: AuthState = {
   user: null,
   profile: null,
+  session: null,
   loading: true,
   error: null,
 };

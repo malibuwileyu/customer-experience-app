@@ -6,8 +6,12 @@
  * Ensures proper cleanup after each test to prevent test pollution.
  */
 
+import '@testing-library/jest-dom'
 import { expect, afterEach, vi } from 'vitest'
 import { cleanup } from '@testing-library/react'
+import * as matchers from '@testing-library/jest-dom/matchers'
+
+expect.extend(matchers)
 
 // Add Testing Library matchers
 declare module 'vitest' {
