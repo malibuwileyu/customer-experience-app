@@ -2,28 +2,11 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/common/card'
 import { Button } from '../../components/common/button'
-import { Checkbox } from '../../components/common/checkbox'
 import { TicketList } from '../../components/tickets/ticket-list'
-import { useTickets } from '../../hooks/tickets/use-tickets'
 
 export function TicketsPage() {
   const navigate = useNavigate()
   const [selectedTickets, setSelectedTickets] = useState<string[]>([])
-  const { data: tickets } = useTickets()
-
-  const handleBulkAction = (action: 'delete' | 'close' | 'assign') => {
-    // TODO: Implement bulk actions
-    console.log(`Bulk ${action} for tickets:`, selectedTickets)
-    setSelectedTickets([])
-  }
-
-  const handleSelectAll = () => {
-    if (selectedTickets.length === tickets?.length) {
-      setSelectedTickets([])
-    } else {
-      setSelectedTickets(tickets?.map(t => t.id) || [])
-    }
-  }
 
   const handleSelectTicket = (ticketId: string) => {
     setSelectedTickets(prev => 
@@ -31,6 +14,16 @@ export function TicketsPage() {
         ? prev.filter(id => id !== ticketId)
         : [...prev, ticketId]
     )
+  }
+
+  const handleSelectAll = (ticketIds: string[]) => {
+    setSelectedTickets(ticketIds)
+  }
+
+  const handleBulkAction = (action: 'delete' | 'close' | 'assign') => {
+    // TODO: Implement bulk actions
+    console.log(`Bulk ${action} for tickets:`, selectedTickets)
+    setSelectedTickets([])
   }
 
   return (
@@ -45,18 +38,17 @@ export function TicketsPage() {
         </Button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <div>
-              <CardTitle>Quick Filters</CardTitle>
-              <CardDescription>Filter tickets by common criteria</CardDescription>
-            </div>
-            {selectedTickets.length > 0 && (
+      {selectedTickets.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div className="flex justify-between items-center">
+              <div>
+                <CardTitle>Bulk Actions</CardTitle>
+                <CardDescription>
+                  {selectedTickets.length} ticket{selectedTickets.length === 1 ? '' : 's'} selected
+                </CardDescription>
+              </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">
-                  {selectedTickets.length} selected
-                </span>
                 <Button 
                   variant="outline" 
                   size="sm"
@@ -79,28 +71,15 @@ export function TicketsPage() {
                   Delete Selected
                 </Button>
               </div>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Checkbox 
-                id="select-all"
-                checked={selectedTickets.length === tickets?.length && tickets.length > 0}
-                onCheckedChange={handleSelectAll}
-              />
-              <label htmlFor="select-all" className="text-sm">
-                Select All
-              </label>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardHeader>
+        </Card>
+      )}
 
       <TicketList 
         selectedTickets={selectedTickets}
         onSelectTicket={handleSelectTicket}
+        onSelectAll={handleSelectAll}
       />
     </div>
   )

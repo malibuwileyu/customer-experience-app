@@ -1,6 +1,5 @@
 'use client'
 
-import { useNavigate } from 'react-router-dom'
 import { formatDistanceToNow } from 'date-fns'
 import { Card } from '../common/card'
 import { Badge } from '../common/badge'
@@ -8,6 +7,7 @@ import { Button } from '../common/button'
 import { Avatar, AvatarFallback } from '../common/avatar'
 import { Checkbox } from '../common/checkbox'
 import type { Ticket } from '../../types/models/ticket.types'
+import { useNavigate } from 'react-router-dom'
 
 interface TicketItemProps {
   ticket: Ticket
@@ -17,7 +17,7 @@ interface TicketItemProps {
 
 export function TicketItem({ ticket, selected = false, onSelect }: TicketItemProps) {
   const navigate = useNavigate()
-
+  
   const statusColors = {
     open: 'bg-blue-500',
     in_progress: 'bg-yellow-500',
@@ -32,25 +32,33 @@ export function TicketItem({ ticket, selected = false, onSelect }: TicketItemPro
     urgent: 'bg-red-500'
   }
 
-  const handleClick = (e: React.MouseEvent) => {
-    // If clicking the checkbox, don't navigate
-    if ((e.target as HTMLElement).closest('.checkbox-wrapper')) {
-      return
-    }
-    navigate(`/tickets/${ticket.id}`)
+  const handleCheckboxClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    onSelect?.(ticket.id)
+  }
+
+  const handleCardClick = () => {
+    navigate(`/app/tickets/${ticket.id}`)
+  }
+
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    navigate(`/app/tickets/${ticket.id}/edit`)
   }
 
   return (
     <Card 
       className="p-4 hover:shadow-md transition-shadow cursor-pointer"
-      onClick={handleClick}
+      onClick={handleCardClick}
     >
       <div className="flex items-start justify-between">
         <div className="flex items-start gap-4">
-          <div className="checkbox-wrapper pt-1">
+          <div 
+            className="checkbox-wrapper pt-1" 
+            onClick={handleCheckboxClick}
+          >
             <Checkbox
               checked={selected}
-              onCheckedChange={() => onSelect?.(ticket.id)}
               aria-label={`Select ticket ${ticket.id}`}
             />
           </div>
@@ -90,10 +98,7 @@ export function TicketItem({ ticket, selected = false, onSelect }: TicketItemPro
         <Button
           variant="ghost"
           size="sm"
-          onClick={(e) => {
-            e.stopPropagation()
-            navigate(`/tickets/${ticket.id}/edit`)
-          }}
+          onClick={handleEditClick}
         >
           Edit
         </Button>

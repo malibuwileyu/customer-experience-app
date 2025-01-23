@@ -1,18 +1,31 @@
+/**
+ * @fileoverview Hook for fetching and managing tickets
+ * @module hooks/tickets/use-tickets
+ */
+
 import { useQuery } from '@tanstack/react-query'
 import { getTickets } from '../../services/ticket.service'
-import type { Ticket } from '../../types/models/ticket.types'
+import type { Ticket, TicketFilters } from '../../types/models/ticket.types'
 
 interface UseTicketsOptions {
-  status?: Ticket['status']
-  priority?: Ticket['priority']
-  assignedTo?: string
-  createdBy?: string
-  search?: string
+  filters?: TicketFilters
+  page?: number
+  pageSize?: number
 }
 
-export function useTickets(options: UseTicketsOptions = {}) {
-  return useQuery<Ticket[], Error>({
-    queryKey: ['tickets', options],
-    queryFn: () => getTickets(options),
+export function useTickets({ filters = {}, page = 1, pageSize = 10 }: UseTicketsOptions = {}) {
+  const { data, isLoading, error } = useQuery<{ data: Ticket[], count: number }, Error>({
+    queryKey: ['tickets', filters, page, pageSize],
+    queryFn: () => getTickets(filters, undefined, page, pageSize),
   })
+
+  return {
+    tickets: data?.data ?? [],
+    totalCount: data?.count ?? 0,
+    isLoading,
+    error,
+    currentPage: page,
+    pageSize,
+    totalPages: Math.ceil((data?.count ?? 0) / pageSize)
+  }
 } 

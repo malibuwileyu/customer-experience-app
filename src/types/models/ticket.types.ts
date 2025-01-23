@@ -52,6 +52,7 @@ export interface TicketComment extends Omit<DBTicketComment, 'user_id'> {
     id: string
     name: string
     email: string
+    avatar_url?: string | null
   }
 }
 
@@ -59,6 +60,7 @@ export interface TicketStatusHistory extends Omit<DBTicketStatusHistory, 'change
   changed_by_user: {
     id: string
     name: string
+    avatar_url?: string | null
   }
 }
 

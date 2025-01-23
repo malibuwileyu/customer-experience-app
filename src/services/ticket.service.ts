@@ -5,14 +5,20 @@
 
 import { supabase } from "../lib/supabase"
 import type { 
-  CreateTicketDTO, 
-  UpdateTicketDTO, 
-  Ticket,
+  CreateTicketDTO,
+  UpdateTicketDTO,
   CreateTicketCommentDTO,
   TicketComment,
   TicketFilters,
-  TicketSort
-} from '@/types/models/ticket.types'
+  TicketSort,
+  TicketStatusHistory
+} from '../types/models/ticket.types'
+import type { Ticket } from '../types/tickets'
+
+export interface PaginatedResponse<T> {
+  data: T[]
+  count: number
+}
 
 export const ticketService = {
   async createTicket(data: CreateTicketDTO): Promise<Ticket> {
@@ -32,82 +38,54 @@ export const ticketService = {
         created_by: user?.id,
         status: 'open'
       })
-      .select()
+      .select('*')
       .single()
 
-    if (error) throw error
+    if (error) {
+      console.error('Error creating ticket:', error)
+      throw error
+    }
+
     return ticket
   },
 
   async getTicket(id: string): Promise<Ticket> {
-    const { data: ticket, error } = await supabase
+    const { data, error } = await supabase
       .from('tickets')
-      .select(`
-        *,
-        created_by:profiles!tickets_created_by_fkey(id, full_name, avatar_url),
-        assigned_to:profiles!tickets_assigned_to_fkey(id, full_name, avatar_url),
-        team:teams(id, name),
-        category:categories(id, name)
-      `)
+      .select('*')
       .eq('id', id)
       .single()
 
-    if (error) throw error
-    return ticket
+    if (error) {
+      console.error('Error fetching ticket:', error)
+      throw error
+    }
+
+    return data
   },
 
-  async getTickets(filters?: TicketFilters, sort?: TicketSort): Promise<Ticket[]> {
-    let query = supabase
+  async getTickets(filters?: TicketFilters, sort?: TicketSort, page: number = 1, pageSize: number = 10): Promise<PaginatedResponse<Ticket>> {
+    const start = (page - 1) * pageSize
+
+    // Simple query to get tickets
+    const { data, error } = await supabase
       .from('tickets')
-      .select(`
-        *,
-        created_by:profiles!tickets_created_by_fkey(id, full_name, avatar_url),
-        assigned_to:profiles!tickets_assigned_to_fkey(id, full_name, avatar_url),
-        team:teams(id, name),
-        category:categories(id, name)
-      `)
+      .select('*')
+      .order('created_at', { ascending: false })
 
-    // Apply filters
-    if (filters) {
-      if (filters.status) {
-        query = query.eq('status', filters.status)
-      }
-      if (filters.priority) {
-        query = query.eq('priority', filters.priority)
-      }
-      if (filters.assignedTo) {
-        query = query.eq('assigned_to', filters.assignedTo)
-      }
-      if (filters.team_id) {
-        query = query.eq('team_id', filters.team_id)
-      }
-      if (filters.category_id) {
-        query = query.eq('category_id', filters.category_id)
-      }
-      if (filters.tags?.length) {
-        query = query.contains('tags', filters.tags)
-      }
-      if (filters.search) {
-        query = query.or(`title.ilike.%${filters.search}%,description.ilike.%${filters.search}%`)
-      }
-      if (filters.dateRange) {
-        query = query
-          .gte('created_at', filters.dateRange.start)
-          .lte('created_at', filters.dateRange.end)
-      }
+    if (error) {
+      console.error('Error fetching tickets:', error)
+      throw error
     }
 
-    // Apply sorting
-    if (sort) {
-      query = query.order(sort.field, { ascending: sort.direction === 'asc' })
-    } else {
-      query = query.order('created_at', { ascending: false })
+    // Handle pagination in memory
+    const allTickets = data as Ticket[]
+    const paginatedTickets = allTickets.slice(start, start + pageSize)
+
+    return {
+      data: paginatedTickets,
+      count: allTickets.length
     }
-
-    const { data: tickets, error } = await query
-
-    if (error) throw error
-    return tickets
   },
 
   async updateTicket(id: string, data: UpdateTicketDTO): Promise<Ticket> {
@@ -115,7 +93,7 @@ export const ticketService = {
       .from('tickets')
       .update(data)
       .eq('id', id)
-      .select()
+      .select('*')
       .single()
 
     if (error) throw error
@@ -143,15 +121,22 @@ export const ticketService = {
   async getTicketComments(ticketId: string): Promise<TicketComment[]> {
     const { data: comments, error } = await supabase
       .from('ticket_comments')
-      .select(`
-        *,
-        user:profiles!ticket_comments_user_id_fkey(id, full_name, avatar_url)
-      `)
+      .select('*')
       .eq('ticket_id', ticketId)
       .order('created_at', { ascending: true })
 
     if (error) throw error
-    return comments
+    if (!comments?.length) return []
+
+    return comments.map(comment => ({
+      ...comment,
+      user: {
+        id: comment.user_id,
+        name: 'User',  // We can fetch user details separately if needed
+        email: '',
+        avatar_url: null
+      }
+    }))
   },
 
   async assignTicket(ticketId: string, userId: string): Promise<Ticket> {
@@ -159,7 +144,6 @@ export const ticketService = {
       data: { user },
     } = await supabase.auth.getUser()
 
-    // Start a transaction
     const { data: ticket, error } = await supabase.rpc('assign_ticket', {
       p_ticket_id: ticketId,
       p_assigned_to: userId,
@@ -175,7 +159,6 @@ export const ticketService = {
       data: { user },
     } = await supabase.auth.getUser()
 
-    // Start a transaction
     const { data: ticket, error } = await supabase.rpc('update_ticket_status', {
       p_ticket_id: ticketId,
       p_new_status: status,
@@ -184,6 +167,40 @@ export const ticketService = {
 
     if (error) throw error
     return ticket
+  },
+
+  async getTicketStatusHistory(ticketId: string): Promise<TicketStatusHistory[]> {
+    // First get the status history
+    const { data: history, error: historyError } = await supabase
+      .from('ticket_status_history')
+      .select('*')
+      .eq('ticket_id', ticketId)
+      .order('changed_at', { ascending: false })
+
+    if (historyError) throw historyError
+    if (!history?.length) return []
+
+    // Then get the user profiles for all changed_by users
+    const userIds = [...new Set(history.map(entry => entry.changed_by))]
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id, full_name, avatar_url')
+      .in('id', userIds)
+
+    if (profilesError) throw profilesError
+
+    // Create a map of user profiles for easy lookup
+    const profileMap = new Map(profiles?.map(profile => [profile.id, profile]))
+
+    // Map the history entries to include user information
+    return history.map(entry => ({
+      ...entry,
+      changed_by_user: {
+        id: entry.changed_by,
+        name: profileMap.get(entry.changed_by)?.full_name || 'Unknown',
+        avatar_url: profileMap.get(entry.changed_by)?.avatar_url
+      }
+    }))
   },
 
   async deleteTicket(id: string): Promise<void> {

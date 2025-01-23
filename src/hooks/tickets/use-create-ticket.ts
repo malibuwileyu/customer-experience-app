@@ -1,12 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ticketService } from '../../services/ticket.service'
 import { toast } from 'sonner'
-import { useNavigate } from 'react-router-dom'
 import type { CreateTicketDTO } from '../../types/models/ticket.types'
 
 export function useCreateTicket() {
   const queryClient = useQueryClient()
-  const navigate = useNavigate()
 
   return useMutation({
     mutationFn: async (data: CreateTicketDTO) => {
@@ -21,8 +19,8 @@ export function useCreateTicket() {
     onSuccess: (ticket) => {
       queryClient.invalidateQueries({ queryKey: ['tickets'] })
       toast.success('Ticket created successfully')
-      // Navigate to the ticket detail page
-      navigate(`/tickets/${ticket.id}`)
+      // Close the dialog by refreshing the page
+      window.location.reload()
     },
     onError: (error) => {
       console.error('Error creating ticket:', error)

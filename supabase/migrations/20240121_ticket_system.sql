@@ -361,3 +361,89 @@ CREATE POLICY "Assignment history viewable by team members"
 CREATE POLICY "SLA configs viewable by authenticated users"
     ON sla_configs FOR SELECT
     USING (auth.role() = 'authenticated');
+
+-- Function to get tickets with all related data
+CREATE OR REPLACE FUNCTION get_tickets(
+  p_status text[] DEFAULT NULL,
+  p_priority text[] DEFAULT NULL,
+  p_team_id UUID DEFAULT NULL,
+  p_search text DEFAULT NULL
+) RETURNS TABLE (
+  id UUID,
+  title TEXT,
+  description TEXT,
+  status ticket_status,
+  priority ticket_priority,
+  created_by UUID,
+  assigned_to UUID,
+  team_id UUID,
+  category_id UUID,
+  tags TEXT[],
+  created_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ,
+  created_by_profile JSONB,
+  assigned_to_profile JSONB,
+  team JSONB,
+  category JSONB
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    t.id,
+    t.title,
+    t.description,
+    t.status,
+    t.priority,
+    t.created_by,
+    t.assigned_to,
+    t.team_id,
+    t.category_id,
+    t.tags,
+    t.created_at,
+    t.updated_at,
+    (
+      SELECT jsonb_build_object(
+        'id', p1.id,
+        'full_name', p1.full_name,
+        'avatar_url', p1.avatar_url
+      )
+      FROM profiles p1
+      WHERE p1.id = t.created_by
+    ) as created_by_profile,
+    (
+      SELECT jsonb_build_object(
+        'id', p2.id,
+        'full_name', p2.full_name,
+        'avatar_url', p2.avatar_url
+      )
+      FROM profiles p2
+      WHERE p2.id = t.assigned_to
+    ) as assigned_to_profile,
+    (
+      SELECT jsonb_build_object(
+        'id', tm.id,
+        'name', tm.name
+      )
+      FROM teams tm
+      WHERE tm.id = t.team_id
+    ) as team,
+    (
+      SELECT jsonb_build_object(
+        'id', c.id,
+        'name', c.name
+      )
+      FROM categories c
+      WHERE c.id = t.category_id
+    ) as category
+  FROM tickets t
+  WHERE
+    (p_status IS NULL OR t.status = ANY(p_status::ticket_status[]))
+    AND (p_priority IS NULL OR t.priority = ANY(p_priority::ticket_priority[]))
+    AND (p_team_id IS NULL OR t.team_id = p_team_id)
+    AND (p_search IS NULL OR t.title ILIKE '%' || p_search || '%')
+  ORDER BY t.created_at DESC;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Grant execute permission to authenticated users
+GRANT EXECUTE ON FUNCTION get_tickets TO authenticated;
