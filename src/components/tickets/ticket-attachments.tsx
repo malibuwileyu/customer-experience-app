@@ -4,7 +4,7 @@ import { Card } from '../../components/common/card'
 import { getFileUrl } from '../../services/storage.service'
 import { toast } from 'sonner'
 
-interface Attachment {
+export interface Attachment {
   name: string
   path: string
   type: string
@@ -15,7 +15,6 @@ interface TicketAttachmentsProps {
 }
 
 export function TicketAttachments({ attachments }: TicketAttachmentsProps) {
-  const [loadingUrls, setLoadingUrls] = useState<Record<string, boolean>>({})
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({})
 
   useEffect(() => {
@@ -56,8 +55,6 @@ export function TicketAttachments({ attachments }: TicketAttachmentsProps) {
     }
 
     try {
-      setLoadingUrls(prev => ({ ...prev, [attachment.path]: true }))
-      
       // Fetch the file as a blob
       const response = await fetch(url)
       if (!response.ok) throw new Error('Failed to fetch file')
@@ -78,8 +75,6 @@ export function TicketAttachments({ attachments }: TicketAttachmentsProps) {
     } catch (error) {
       console.error('Error downloading file:', error)
       toast.error('Failed to download file')
-    } finally {
-      setLoadingUrls(prev => ({ ...prev, [attachment.path]: false }))
     }
   }
 

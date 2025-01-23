@@ -10,7 +10,6 @@ import type {
   CreateTicketCommentDTO,
   TicketComment,
   TicketFilters,
-  TicketSort,
   TicketStatusHistory,
   Ticket
 } from '../types/models/ticket.types'
@@ -64,7 +63,7 @@ export const ticketService = {
     return data
   },
 
-  async getTickets(filters?: TicketFilters, sort?: TicketSort, page: number = 1, pageSize: number = 10): Promise<PaginatedResponse<Ticket>> {
+  async getTickets(filters?: TicketFilters, page: number = 1, pageSize: number = 10): Promise<PaginatedResponse<Ticket>> {
     // Simple query to get all tickets
     const { data, error } = await supabase
       .from('tickets')

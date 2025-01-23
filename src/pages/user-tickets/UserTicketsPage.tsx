@@ -12,7 +12,6 @@ import { TicketItem } from '../../components/tickets/ticket-item'
 import { Dialog, DialogContent, DialogTrigger } from '../../components/common/dialog'
 import { CreateTicketForm } from '../../components/tickets/create-ticket-form'
 import { Plus } from 'lucide-react'
-import type { Ticket } from '../../types/models/ticket.types'
 
 export default function UserTicketsPage() {
   const [currentPage, setCurrentPage] = useState(1)

@@ -20,7 +20,7 @@ export function useCreateTicket({ onSuccess }: UseCreateTicketOptions = {}) {
         throw error
       }
     },
-    onSuccess: (ticket) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tickets'] })
       toast.success('Ticket created successfully')
       onSuccess?.()

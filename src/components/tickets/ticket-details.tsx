@@ -11,14 +11,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "../common/dropdown-menu"
-import { format, formatDistanceToNow } from "date-fns"
+import { format } from "date-fns"
 import { ChevronDown } from "lucide-react"
 import { useState } from "react"
 import { TICKET_STATUS } from "../../types/models/ticket.types"
-import type { Ticket, TicketStatusHistory, TicketComment, CreateTicketCommentDTO } from "../../types/models/ticket.types"
+import type { Ticket, TicketComment, CreateTicketCommentDTO } from "../../types/models/ticket.types"
 import { CommentForm } from "./comment-form"
 import { CommentList } from "./comment-list"
-import { Card, CardContent, CardFooter, CardHeader } from '../common/card'
 import { TicketAttachments } from './ticket-attachments'
 
 interface TicketDetailsProps {
@@ -51,12 +50,6 @@ export function TicketDetails({ ticketId, isUserTicket = false }: TicketDetailsP
     }
   })
 
-  const { data: statusHistory, isLoading: isLoadingHistory } = useQuery<TicketStatusHistory[]>({
-    queryKey: ['ticket-status-history', ticketId],
-    queryFn: () => ticketService.getTicketStatusHistory(ticketId),
-    enabled: !!ticketId
-  })
-
   const { data: comments, isLoading: isLoadingComments } = useQuery<TicketComment[]>({
     queryKey: ['ticket-comments', ticketId],
     queryFn: () => ticketService.getTicketComments(ticketId),
@@ -72,7 +65,6 @@ export function TicketDetails({ ticketId, isUserTicket = false }: TicketDetailsP
       
       // Invalidate queries to refetch latest data
       await queryClient.invalidateQueries({ queryKey: ['ticket', ticketId] })
-      await queryClient.invalidateQueries({ queryKey: ['ticket-status-history', ticketId] })
     } catch (error) {
       console.error('Failed to update ticket status:', error)
     } finally {
@@ -169,7 +161,15 @@ export function TicketDetails({ ticketId, isUserTicket = false }: TicketDetailsP
 
       {/* Attachments Section */}
       {ticket.attachments && ticket.attachments.length > 0 && (
-        <TicketAttachments attachments={ticket.attachments} />
+        <TicketAttachments 
+          attachments={ticket.attachments.map(path => ({
+            name: path.split('/').pop() || path,
+            path,
+            type: path.toLowerCase().endsWith('.jpg') || 
+                  path.toLowerCase().endsWith('.png') || 
+                  path.toLowerCase().endsWith('.gif') ? 'image' : 'file'
+          } as const))} 
+        />
       )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

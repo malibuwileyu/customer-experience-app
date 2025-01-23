@@ -5,7 +5,6 @@
 
 import { supabase } from '../lib/supabase';
 import { v4 as uuidv4 } from 'uuid';
-import type { StorageError } from '@supabase/storage-js';
 
 // Format file size for logging
 function formatFileSize(bytes: number): string {

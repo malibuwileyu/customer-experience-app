@@ -12,11 +12,10 @@ import { Alert, AlertDescription } from '../common/alert'
 import { FileUpload } from './file-upload'
 import { useCreateTicket } from '../../hooks/tickets/use-create-ticket'
 import { Textarea } from '../common/textarea'
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { useFileUpload } from '../../hooks/tickets/use-file-upload'
 import { storageConfig } from '../../services/storage.service'
 import { ticketService } from '../../services/ticket.service'
-import type { Ticket } from '../../types/models/ticket.types'
 import { useAuth } from '../../contexts/AuthContext'
 import { useUserRoles } from '../../hooks/auth/useUserRoles'
 import { toast } from 'sonner'
@@ -254,7 +253,7 @@ export function CreateTicketForm({ onClose }: CreateTicketFormProps) {
             <FormField
               control={form.control}
               name="attachments"
-              render={({ field }) => (
+              render={() => (
                 <FormItem>
                   <FormLabel>Attachments</FormLabel>
                   <FormControl>

@@ -16,7 +16,7 @@ interface UseTicketsOptions {
 export function useTickets({ filters = {}, page = 1, pageSize = 10 }: UseTicketsOptions = {}) {
   const { data, isLoading, error } = useQuery<{ data: Ticket[], count: number }, Error>({
     queryKey: ['tickets', filters, page, pageSize],
-    queryFn: () => getTickets(filters, undefined, page, pageSize),
+    queryFn: () => getTickets(filters, page, pageSize),
   })
 
   return {
