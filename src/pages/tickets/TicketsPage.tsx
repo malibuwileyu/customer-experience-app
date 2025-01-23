@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../components/common/card'
+import { Card, CardHeader, CardTitle, CardDescription } from '../../components/common/card'
 import { Button } from '../../components/common/button'
 import { TicketList } from '../../components/tickets/ticket-list'
 

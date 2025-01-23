@@ -14,24 +14,41 @@ import {
 import { format, formatDistanceToNow } from "date-fns"
 import { ChevronDown } from "lucide-react"
 import { useState } from "react"
-import type { Ticket } from "../../types/tickets"
-import type { TicketStatusHistory, TicketComment, CreateTicketCommentDTO } from "../../types/models/ticket.types"
 import { TICKET_STATUS } from "../../types/models/ticket.types"
+import type { Ticket, TicketStatusHistory, TicketComment, CreateTicketCommentDTO } from "../../types/models/ticket.types"
 import { CommentForm } from "./comment-form"
 import { CommentList } from "./comment-list"
+import { Card, CardContent, CardFooter, CardHeader } from '../common/card'
+import { TicketAttachments } from './ticket-attachments'
 
 interface TicketDetailsProps {
   ticketId: string
+  isUserTicket?: boolean
 }
 
-export function TicketDetails({ ticketId }: TicketDetailsProps) {
+export function TicketDetails({ ticketId, isUserTicket = false }: TicketDetailsProps) {
   const [isUpdating, setIsUpdating] = useState(false)
   const [isSubmittingComment, setIsSubmittingComment] = useState(false)
   const queryClient = useQueryClient()
 
   const { data: ticket, isLoading: isLoadingTicket, error: ticketError } = useQuery<Ticket>({
-    queryKey: ['ticket', ticketId],
-    queryFn: () => ticketService.getTicket(ticketId)
+    queryKey: ['ticket', ticketId, isUserTicket],
+    queryFn: async () => {
+      console.log('TicketDetails fetching ticket:', {
+        ticketId,
+        isUserTicket,
+      })
+      try {
+        const result = isUserTicket 
+          ? await ticketService.getUserTicketDetails(ticketId) 
+          : await ticketService.getTicket(ticketId)
+        console.log('TicketDetails fetch result:', result)
+        return result
+      } catch (error) {
+        console.error('TicketDetails fetch error:', error)
+        throw error
+      }
+    }
   })
 
   const { data: statusHistory, isLoading: isLoadingHistory } = useQuery<TicketStatusHistory[]>({
@@ -115,10 +132,10 @@ export function TicketDetails({ ticketId }: TicketDetailsProps) {
             <span>•</span>
             <div className="flex items-center gap-2">
               <Avatar className="h-6 w-6">
-                <AvatarImage src={ticket.created_by.avatar_url || undefined} />
-                <AvatarFallback>{ticket.created_by.full_name?.[0] || '?'}</AvatarFallback>
+                <AvatarImage src={ticket.created_by_user?.avatar_url || undefined} />
+                <AvatarFallback>{ticket.created_by_user?.full_name?.[0] || '?'}</AvatarFallback>
               </Avatar>
-              <span>{ticket.created_by.full_name || 'Unknown'}</span>
+              <span>{ticket.created_by_user?.full_name || 'Unknown'}</span>
             </div>
             <span>•</span>
             <span>{format(new Date(ticket.created_at), 'PPp')}</span>
@@ -149,6 +166,11 @@ export function TicketDetails({ ticketId }: TicketDetailsProps) {
       <div className="prose max-w-none">
         <p>{ticket.description}</p>
       </div>
+
+      {/* Attachments Section */}
+      {ticket.attachments && ticket.attachments.length > 0 && (
+        <TicketAttachments attachments={ticket.attachments} />
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <div className="space-y-2">
@@ -188,73 +210,18 @@ export function TicketDetails({ ticketId }: TicketDetailsProps) {
         </div>
       </div>
 
-      {/* Add internal notes section */}
-      {ticket.metadata?.internal_notes && (
-        <div className="mt-6 space-y-2">
-          <h3 className="text-sm font-medium">Internal Notes</h3>
-          <div className="rounded-md bg-muted p-4">
-            <p className="text-sm text-muted-foreground">{ticket.metadata.internal_notes}</p>
-          </div>
-        </div>
-      )}
-
-      {/* Status Timeline */}
-      <div className="border-t pt-6">
-        <h2 className="text-lg font-semibold">Status Timeline</h2>
-        {isLoadingHistory ? (
-          <div className="space-y-4 mt-4">
-            <Skeleton className="h-16 w-full" />
-            <Skeleton className="h-16 w-full" />
-            <Skeleton className="h-16 w-full" />
-          </div>
-        ) : statusHistory && statusHistory.length > 0 ? (
-          <div className="mt-4 space-y-4">
-            {statusHistory.map((entry) => (
-              <div key={entry.id} className="flex items-start gap-4">
-                <div className="mt-1">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={entry.changed_by_user.avatar_url || undefined} />
-                    <AvatarFallback>{entry.changed_by_user.name?.[0] || '?'}</AvatarFallback>
-                  </Avatar>
-                </div>
-                <div className="flex-1 space-y-1">
-                  <p className="text-sm">
-                    <span className="font-medium">{entry.changed_by_user.name}</span>
-                    {' changed status from '}
-                    <Badge variant="outline" className="mx-1">
-                      {entry.old_status || 'none'}
-                    </Badge>
-                    {' to '}
-                    <Badge variant="outline" className="mx-1">
-                      {entry.new_status}
-                    </Badge>
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatDistanceToNow(new Date(entry.changed_at), { addSuffix: true })}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground mt-4">No status changes yet</p>
-        )}
-      </div>
-
       {/* Comments Section */}
-      <div className="border-t pt-6">
-        <h2 className="text-lg font-semibold">Comments</h2>
-        <div className="mt-4 space-y-6">
-          <CommentList
-            comments={comments || []}
-            isLoading={isLoadingComments}
-          />
-          <CommentForm
-            ticketId={ticketId}
-            onSubmit={handleCommentSubmit}
-            isSubmitting={isSubmittingComment}
-          />
-        </div>
+      <div className="mt-8">
+        <h2 className="text-lg font-semibold mb-4">Comments</h2>
+        <CommentForm
+          ticketId={ticketId}
+          onSubmit={handleCommentSubmit}
+          isSubmitting={isSubmittingComment}
+        />
+        <CommentList
+          comments={comments || []}
+          isLoading={isLoadingComments}
+        />
       </div>
     </div>
   )

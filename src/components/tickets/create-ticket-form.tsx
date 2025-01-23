@@ -12,6 +12,18 @@ import { Alert, AlertDescription } from '../common/alert'
 import { FileUpload } from './file-upload'
 import { useCreateTicket } from '../../hooks/tickets/use-create-ticket'
 import { Textarea } from '../common/textarea'
+import { useState, useRef } from 'react'
+import { useFileUpload } from '../../hooks/tickets/use-file-upload'
+import { storageConfig } from '../../services/storage.service'
+import { ticketService } from '../../services/ticket.service'
+import type { Ticket } from '../../types/models/ticket.types'
+import { useAuth } from '../../contexts/AuthContext'
+import { useUserRoles } from '../../hooks/auth/useUserRoles'
+import { toast } from 'sonner'
+
+interface CreateTicketFormProps {
+  onClose?: () => void
+}
 
 const ticketFormSchema = z.object({
   title: z.string()
@@ -38,7 +50,7 @@ const defaultValues: Partial<TicketFormData> = {
   internal_notes: '',
 }
 
-export function CreateTicketForm() {
+export function CreateTicketForm({ onClose }: CreateTicketFormProps) {
   const form = useForm<TicketFormData>({
     resolver: zodResolver(ticketFormSchema),
     defaultValues,
@@ -46,7 +58,22 @@ export function CreateTicketForm() {
     reValidateMode: 'onSubmit',
   })
 
-  const { mutate: createTicketMutate, isPending, error } = useCreateTicket()
+  const { user } = useAuth()
+  const { roles } = useUserRoles(user?.id)
+  const isStaff = roles?.some(role => ['admin', 'agent'].includes(role))
+
+  const { mutateAsync: createTicketMutate, isPending, error } = useCreateTicket({
+    onSuccess: onClose
+  })
+  const [uploadError, setUploadError] = useState<string>()
+  const [pendingFiles, setPendingFiles] = useState<File[]>([])
+
+  // Initialize file upload hook
+  const { uploadFiles } = useFileUpload({
+    maxFiles: 5,
+    maxSize: storageConfig.maxFileSize,
+    onError: (error) => setUploadError(error)
+  })
 
   const onSubmit = async (data: TicketFormData) => {
     try {
@@ -54,22 +81,55 @@ export function CreateTicketForm() {
       const cleanedData = {
         ...data,
         internal_notes: data.internal_notes?.trim() || undefined,
-        attachments: data.attachments?.length ? data.attachments : undefined,
       }
-      await createTicketMutate(cleanedData)
+
+      // Create ticket first without attachments
+      const ticket = await createTicketMutate(cleanedData)
+
+      // If we have pending files and ticket was created successfully
+      if (pendingFiles.length > 0 && ticket?.id) {
+        try {
+          console.log('Starting file upload process for ticket:', ticket.id)
+          console.log('Pending files:', pendingFiles.map(f => ({ name: f.name, size: f.size })))
+          
+          const paths = await uploadFiles(pendingFiles, ticket.id)
+          console.log('Files uploaded successfully, received paths:', paths)
+
+          if (paths.length > 0) {
+            console.log('Updating ticket with attachment paths:', paths)
+            // Update ticket with file paths using ticketService directly
+            const updatedTicket = await ticketService.updateTicket(ticket.id, {
+              attachments: paths
+            })
+            console.log('Ticket updated successfully with attachments:', updatedTicket.attachments)
+          }
+        } catch (uploadError) {
+          console.error('Error in file upload process:', uploadError)
+          setUploadError(uploadError instanceof Error ? uploadError.message : 'Failed to upload files')
+          toast.error('Ticket created but file upload failed')
+        }
+      }
+
+      // Reset form and state
+      form.reset(defaultValues)
+      setPendingFiles([])
+      setUploadError(undefined)
     } catch (err) {
       console.error('Error submitting form:', err)
+      setUploadError(err instanceof Error ? err.message : 'Failed to create ticket')
     }
   }
 
   const handleReset = () => {
     form.reset(defaultValues)
     form.clearErrors()
+    setPendingFiles([])
+    setUploadError(undefined)
   }
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="max-h-[80vh] flex flex-col overflow-hidden">
+      <CardHeader className="pb-4 shrink-0">
         <CardTitle>Create New Ticket</CardTitle>
         <CardDescription>
           Submit a new support ticket. Please provide as much detail as possible.
@@ -77,8 +137,8 @@ export function CreateTicketForm() {
       </CardHeader>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} noValidate>
-          <CardContent className="space-y-6">
+        <form onSubmit={form.handleSubmit(onSubmit)} noValidate className="flex flex-col min-h-0 flex-1">
+          <CardContent className="space-y-6 overflow-y-auto">
             {error && (
               <Alert variant="destructive">
                 <AlertDescription>
@@ -168,26 +228,28 @@ export function CreateTicketForm() {
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="internal_notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Internal Notes</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="Additional notes (internal use only)"
-                      className="min-h-[80px]"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                    Optional notes visible only to support staff.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {isStaff && (
+              <FormField
+                control={form.control}
+                name="internal_notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Internal Notes</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Additional notes (internal use only)"
+                        className="min-h-[80px]"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Optional notes visible only to support staff.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <FormField
               control={form.control}
@@ -197,20 +259,26 @@ export function CreateTicketForm() {
                   <FormLabel>Attachments</FormLabel>
                   <FormControl>
                     <FileUpload
-                      onUpload={(urls) => field.onChange(urls)}
-                      onError={(error) => form.setError('attachments', { message: error })}
+                      onFileSelect={(files) => setPendingFiles(files)}
+                      onError={(error) => setUploadError(error)}
+                      maxFiles={5}
+                      maxSize={storageConfig.maxFileSize}
                     />
                   </FormControl>
                   <FormDescription>
                     Upload files related to this ticket
                   </FormDescription>
-                  <FormMessage />
+                  {uploadError && (
+                    <FormMessage role="alert">
+                      {uploadError}
+                    </FormMessage>
+                  )}
                 </FormItem>
               )}
             />
           </CardContent>
 
-          <CardFooter className="flex justify-end space-x-4">
+          <CardFooter className="flex justify-end space-x-4 border-t py-4 shrink-0 bg-background">
             <Button
               type="button"
               variant="outline"

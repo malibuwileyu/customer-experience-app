@@ -11,9 +11,9 @@ import type {
   TicketComment,
   TicketFilters,
   TicketSort,
-  TicketStatusHistory
+  TicketStatusHistory,
+  Ticket
 } from '../types/models/ticket.types'
-import type { Ticket } from '../types/tickets'
 
 export interface PaginatedResponse<T> {
   data: T[]
@@ -65,9 +65,7 @@ export const ticketService = {
   },
 
   async getTickets(filters?: TicketFilters, sort?: TicketSort, page: number = 1, pageSize: number = 10): Promise<PaginatedResponse<Ticket>> {
-    const start = (page - 1) * pageSize
-
-    // Simple query to get tickets
+    // Simple query to get all tickets
     const { data, error } = await supabase
       .from('tickets')
       .select('*')
@@ -78,17 +76,52 @@ export const ticketService = {
       throw error
     }
 
-    // Handle pagination in memory
-    const allTickets = data as Ticket[]
-    const paginatedTickets = allTickets.slice(start, start + pageSize)
+    let filteredTickets = data as Ticket[]
+
+    // Apply filters in memory
+    if (filters) {
+      if (filters.status) {
+        filteredTickets = filteredTickets.filter(ticket => ticket.status === filters.status)
+      }
+      if (filters.priority) {
+        filteredTickets = filteredTickets.filter(ticket => ticket.priority === filters.priority)
+      }
+      if (filters.search) {
+        const searchLower = filters.search.toLowerCase()
+        filteredTickets = filteredTickets.filter(ticket => 
+          ticket.title.toLowerCase().includes(searchLower) || 
+          ticket.description.toLowerCase().includes(searchLower)
+        )
+      }
+    }
+
+    // Handle pagination
+    const start = (page - 1) * pageSize
+    const paginatedTickets = filteredTickets.slice(start, start + pageSize)
 
     return {
       data: paginatedTickets,
-      count: allTickets.length
+      count: filteredTickets.length // Return count of filtered tickets, not all tickets
     }
   },
 
   async updateTicket(id: string, data: UpdateTicketDTO): Promise<Ticket> {
+    // If we're updating attachments, use the special function
+    if ('attachments' in data) {
+      const { data: ticket, error } = await supabase
+        .rpc('update_ticket_attachments', {
+          p_ticket_id: id,
+          p_attachments: data.attachments
+        })
+
+      if (error) {
+        console.error('Error updating ticket attachments:', error)
+        throw error
+      }
+      return ticket
+    }
+
+    // Otherwise use normal update
     const { data: ticket, error } = await supabase
       .from('tickets')
       .update(data)
@@ -96,7 +129,10 @@ export const ticketService = {
       .select('*')
       .single()
 
-    if (error) throw error
+    if (error) {
+      console.error('Error updating ticket:', error)
+      throw error
+    }
     return ticket
   },
 
@@ -210,6 +246,62 @@ export const ticketService = {
       .eq('id', id)
 
     if (error) throw error
+  },
+
+  async getUserTickets(page = 1, pageSize = 10): Promise<PaginatedResponse<Ticket>> {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('User not authenticated')
+
+    const { data, error, count } = await supabase
+      .from('tickets')
+      .select('*', { count: 'exact' })
+      .eq('created_by', user.id)
+      .order('created_at', { ascending: false })
+      .range((page - 1) * pageSize, page * pageSize - 1)
+
+    if (error) {
+      console.error('Error fetching user tickets:', error)
+      throw error
+    }
+
+    return {
+      data: data || [],
+      count: count || 0
+    }
+  },
+
+  async getUserTicketDetails(id: string): Promise<Ticket> {
+    console.log('Getting user ticket details for ticket:', id)
+    
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError) {
+      console.error('Auth error:', authError)
+      throw authError
+    }
+    
+    if (!user) {
+      console.error('No user found in getUserTicketDetails')
+      throw new Error('User not authenticated')
+    }
+
+    const { data, error } = await supabase
+      .from('tickets')
+      .select('*')
+      .eq('id', id)
+      .single()
+
+    if (error) {
+      console.error('Error fetching user ticket:', error)
+      throw error
+    }
+
+    if (!data) {
+      console.error('No ticket found:', id)
+      throw new Error('Ticket not found')
+    }
+
+    console.log('Successfully fetched ticket:', data)
+    return data
   }
 }
 

@@ -1,6 +1,5 @@
 "use client"
 
-import { useRouter } from "next/navigation"
 import { Button } from "@/components/common/button"
 import { Plus } from "lucide-react"
 import { TicketList } from "./components/ticket-list"
@@ -9,8 +8,6 @@ import { Dialog, DialogContent, DialogTrigger } from "@/components/common/dialog
 import { CreateTicketForm } from "@/components/tickets/create-ticket-form"
 
 export default function TicketsPage() {
-  const router = useRouter()
-
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex justify-between items-center">

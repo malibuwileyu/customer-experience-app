@@ -33,7 +33,7 @@ This document outlines the testing procedures for protected routes and role-base
   2. Verify access to all protected routes:
      - `/dashboard`
      - `/tickets`
-     - `/admin/*` routes
+     - `/admin/*` routes (e.g., `/admin/users`, `/admin/roles`, `/admin/dashboard`)
   3. Verify admin-only UI elements are visible
 
 - [ ] **Agent Access Test**

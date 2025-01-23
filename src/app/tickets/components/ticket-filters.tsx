@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from "@/components/common/select"
 import { Button } from "@/components/common/button"
-import { TicketPriority, TicketStatus } from "@/types/tickets"
+import { TicketPriority, TicketStatus } from "../../../types/models/ticket.types"
 
 interface TicketFiltersProps {
   onFilterChange?: (filters: {

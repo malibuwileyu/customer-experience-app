@@ -115,4 +115,59 @@ DROP TRIGGER IF EXISTS set_ticket_sla_due_date ON tickets;
 CREATE TRIGGER set_ticket_sla_due_date
   BEFORE INSERT OR UPDATE OF priority ON tickets
   FOR EACH ROW
-  EXECUTE FUNCTION set_sla_due_date(); 
+  EXECUTE FUNCTION set_sla_due_date();
+
+-- Function to update ticket attachments
+CREATE OR REPLACE FUNCTION update_ticket_attachments(
+  p_ticket_id UUID,
+  p_attachments TEXT[]
+) RETURNS SETOF tickets AS $$
+DECLARE
+  v_ticket tickets%ROWTYPE;
+  v_attachments JSONB[];
+  v_path TEXT;
+BEGIN
+  -- Convert array of paths to array of JSONB objects
+  v_attachments := ARRAY[]::JSONB[];
+  
+  -- Log input
+  RAISE NOTICE 'Updating attachments for ticket %', p_ticket_id;
+  RAISE NOTICE 'Received paths: %', p_attachments;
+  
+  FOREACH v_path IN ARRAY p_attachments
+  LOOP
+    RAISE NOTICE 'Processing path: %', v_path;
+    
+    -- Extract filename from path (should be ticketId/uuid.ext)
+    v_attachments := v_attachments || jsonb_build_object(
+      'name', split_part(v_path, '/', 2),  -- Get the filename after ticketId/
+      'path', v_path,  -- Store the complete bucket path
+      'type', CASE 
+        WHEN v_path ~* '\.(jpg|jpeg|png|gif|bmp)$' THEN 'image'
+        WHEN v_path ~* '\.pdf$' THEN 'pdf'
+        WHEN v_path ~* '\.(doc|docx)$' THEN 'document'
+        WHEN v_path ~* '\.txt$' THEN 'text'
+        WHEN v_path ~* '\.zip$' THEN 'archive'
+        ELSE 'other'
+      END
+    );
+  END LOOP;
+
+  RAISE NOTICE 'Built attachments array: %', v_attachments;
+
+  -- Update ticket attachments
+  UPDATE tickets
+  SET 
+    attachments = v_attachments,
+    updated_at = NOW()
+  WHERE id = p_ticket_id
+  RETURNING * INTO v_ticket;
+
+  RAISE NOTICE 'Updated ticket % with attachments: %', p_ticket_id, v_ticket.attachments;
+
+  RETURN NEXT v_ticket;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Grant execute permission to authenticated users
+GRANT EXECUTE ON FUNCTION update_ticket_attachments(UUID, TEXT[]) TO authenticated;

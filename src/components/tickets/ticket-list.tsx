@@ -68,12 +68,13 @@ export function TicketList({ selectedTickets = [], onSelectTicket, onSelectAll }
         
         <Select
           value={filters.status}
-          onValueChange={(value) => setFilters({ ...filters, status: value as TicketStatus })}
+          onValueChange={(value) => setFilters({ ...filters, status: value === 'all' ? undefined : value as TicketStatus })}
         >
           <SelectTrigger className="w-[180px]" aria-label="Filter by status">
             <SelectValue placeholder="Filter by status" />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="all">Filter by status</SelectItem>
             <SelectItem value="open">Open</SelectItem>
             <SelectItem value="in_progress">In Progress</SelectItem>
             <SelectItem value="resolved">Resolved</SelectItem>
@@ -83,12 +84,13 @@ export function TicketList({ selectedTickets = [], onSelectTicket, onSelectAll }
 
         <Select
           value={filters.priority}
-          onValueChange={(value) => setFilters({ ...filters, priority: value as TicketPriority })}
+          onValueChange={(value) => setFilters({ ...filters, priority: value === 'all' ? undefined : value as TicketPriority })}
         >
           <SelectTrigger className="w-[180px]" aria-label="Filter by priority">
             <SelectValue placeholder="Filter by priority" />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="all">Filter by priority</SelectItem>
             <SelectItem value="low">Low</SelectItem>
             <SelectItem value="medium">Medium</SelectItem>
             <SelectItem value="high">High</SelectItem>
@@ -99,7 +101,11 @@ export function TicketList({ selectedTickets = [], onSelectTicket, onSelectAll }
         <Button 
           variant="outline"
           onClick={() => {
-            setFilters({})
+            setFilters({
+              status: undefined,
+              priority: undefined,
+              search: undefined
+            })
             setPage(1)
           }}
         >

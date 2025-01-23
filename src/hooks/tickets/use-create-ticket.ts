@@ -3,7 +3,11 @@ import { ticketService } from '../../services/ticket.service'
 import { toast } from 'sonner'
 import type { CreateTicketDTO } from '../../types/models/ticket.types'
 
-export function useCreateTicket() {
+interface UseCreateTicketOptions {
+  onSuccess?: () => void
+}
+
+export function useCreateTicket({ onSuccess }: UseCreateTicketOptions = {}) {
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -19,8 +23,7 @@ export function useCreateTicket() {
     onSuccess: (ticket) => {
       queryClient.invalidateQueries({ queryKey: ['tickets'] })
       toast.success('Ticket created successfully')
-      // Close the dialog by refreshing the page
-      window.location.reload()
+      onSuccess?.()
     },
     onError: (error) => {
       console.error('Error creating ticket:', error)

@@ -26,6 +26,8 @@ import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useUserRoles } from './hooks/auth/useUserRoles';
 import { TicketDetails } from './pages/tickets/TicketDetails';
+import UserTicketsPage from './pages/user-tickets/UserTicketsPage'
+import { UserTicketDetails } from './pages/user-tickets/[id]'
 
 // Create a client
 const queryClient = new QueryClient();
@@ -126,20 +128,12 @@ export function App() {
             }>
               <Route index element={<Navigate to="/app/dashboard" replace />} />
               <Route path="dashboard" element={<DashboardPage />} />
+              <Route path="user-tickets" element={<ProtectedRoute><UserTicketsPage /></ProtectedRoute>} />
+              <Route path="user-tickets/:id" element={<ProtectedRoute><UserTicketDetails /></ProtectedRoute>} />
               
               {/* Role-protected routes */}
-              <Route path="tickets">
-                <Route index element={
-                  <ProtectedRoute requiredRoles={['admin', 'agent']}>
-                    <TicketsPage />
-                  </ProtectedRoute>
-                } />
-                <Route path=":id" element={
-                  <ProtectedRoute requiredRoles={['admin', 'agent']}>
-                    <TicketDetails />
-                  </ProtectedRoute>
-                } />
-              </Route>
+              <Route path="tickets" element={<ProtectedRoute requiredRoles={['admin', 'agent']}><TicketsPage /></ProtectedRoute>} />
+              <Route path="tickets/:id" element={<ProtectedRoute requiredRoles={['admin', 'agent']}><TicketDetails /></ProtectedRoute>} />
               
               <Route path="admin">
                 <Route path="dashboard" element={

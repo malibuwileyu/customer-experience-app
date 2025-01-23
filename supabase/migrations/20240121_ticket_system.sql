@@ -30,7 +30,7 @@ CREATE TABLE tickets (
     team_id UUID REFERENCES teams(id),
     category_id UUID REFERENCES categories(id),
     tags TEXT[] DEFAULT ARRAY[]::TEXT[],
-    attachments JSONB[] DEFAULT ARRAY[]::JSONB[],
+    attachments JSONB[] DEFAULT ARRAY[]::JSONB[], -- Each entry: { path: string, name: string, size: number, type: string }
     metadata JSONB DEFAULT '{}'::JSONB,
     custom_fields JSONB DEFAULT '{}'::JSONB,
     internal_notes TEXT[] DEFAULT ARRAY[]::TEXT[],
@@ -227,6 +227,45 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
+-- Function to update ticket attachments
+CREATE OR REPLACE FUNCTION update_ticket_attachments(
+  p_ticket_id UUID,
+  p_attachments TEXT[]
+) RETURNS SETOF tickets AS $$
+DECLARE
+  v_ticket tickets%ROWTYPE;
+  v_attachment_objects JSONB[];
+BEGIN
+  -- Convert text array of paths to array of JSONB objects
+  SELECT array_agg(
+    jsonb_build_object(
+      'path', attachment,
+      'name', split_part(attachment, '/', 2),  -- Get filename from path
+      'type', CASE 
+        WHEN attachment LIKE '%.pdf' THEN 'application/pdf'
+        WHEN attachment LIKE '%.png' THEN 'image/png'
+        WHEN attachment LIKE '%.jpg' THEN 'image/jpeg'
+        WHEN attachment LIKE '%.jpeg' THEN 'image/jpeg'
+        WHEN attachment LIKE '%.bmp' THEN 'image/bmp'
+        ELSE 'application/octet-stream'
+      END
+    )
+  )
+  INTO v_attachment_objects
+  FROM unnest(p_attachments) attachment;
+
+  -- Update ticket attachments
+  UPDATE tickets
+  SET 
+    attachments = v_attachment_objects,
+    updated_at = NOW()
+  WHERE id = p_ticket_id
+  RETURNING * INTO v_ticket;
+
+  RETURN NEXT v_ticket;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 -- Insert default SLA configurations
 INSERT INTO sla_configs (name, description, priority, response_time_hours, resolution_time_hours) 
 VALUES 
@@ -246,7 +285,7 @@ ALTER TABLE sla_configs ENABLE ROW LEVEL SECURITY;
 -- Drop existing policies if they exist
 DROP POLICY IF EXISTS "Tickets are viewable by team members and ticket creators" ON tickets;
 DROP POLICY IF EXISTS "Tickets can be created by authenticated users" ON tickets;
-DROP POLICY IF EXISTS "Tickets can be updated by assigned user, team members, or admin" ON tickets;
+DROP POLICY IF EXISTS "Tickets can be updated by creator, assigned user, team members, or admin" ON tickets;
 
 DROP POLICY IF EXISTS "Comments are viewable by team members and ticket creators" ON ticket_comments;
 DROP POLICY IF EXISTS "Comments can be created by team members and ticket creators" ON ticket_comments;
@@ -272,11 +311,12 @@ CREATE POLICY "Tickets can be created by authenticated users"
     ON tickets FOR INSERT
     WITH CHECK (auth.role() = 'authenticated');
 
-CREATE POLICY "Tickets can be updated by assigned user, team members, or admin"
+CREATE POLICY "Tickets can be updated by creator, assigned user, team members, or admin"
     ON tickets FOR UPDATE
     USING (
-        auth.uid() = assigned_to 
-        OR EXISTS (
+        auth.uid() = created_by OR
+        auth.uid() = assigned_to OR
+        EXISTS (
             SELECT 1 FROM team_members tm
             WHERE tm.user_id = auth.uid()
             AND tm.team_id = tickets.team_id
@@ -447,3 +487,6 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Grant execute permission to authenticated users
 GRANT EXECUTE ON FUNCTION get_tickets TO authenticated;
+
+-- Grant execute permission to authenticated users
+GRANT EXECUTE ON FUNCTION update_ticket_attachments(UUID, TEXT[]) TO authenticated;

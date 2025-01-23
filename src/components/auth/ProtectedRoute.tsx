@@ -37,34 +37,35 @@ import type { ProtectedRouteProps } from '../../types/auth.types';
  * ```
  */
 export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps) {
-  const { user, isLoading: isAuthLoading } = useAuth();
+  const { user, isLoading } = useAuth();
   const location = useLocation();
-  const { roles, isLoading: isRolesLoading } = useUserRoles(user?.id);
+  const { roles, isLoading: isLoadingRoles } = useUserRoles();
 
-  // Show loading state while checking auth
-  if (isAuthLoading) {
+  console.log('ProtectedRoute:', {
+    path: location.pathname,
+    user: user?.id,
+    requiredRoles,
+    userRoles: roles,
+    isLoading,
+    isLoadingRoles
+  });
+
+  if (isLoading || isLoadingRoles) {
     return <div>Loading...</div>;
   }
 
-  // Not authenticated - redirect to login with return path
   if (!user) {
-    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
+    console.log('ProtectedRoute: No user, redirecting to login');
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // If roles are required but still loading, show loading state
-  if (requiredRoles && isRolesLoading) {
-    return <div>Loading...</div>;
+  if (requiredRoles && !requiredRoles.some(role => roles.includes(role))) {
+    console.log('ProtectedRoute: User lacks required roles:', {
+      required: requiredRoles,
+      userRoles: roles
+    });
+    return <Navigate to="/unauthorized" replace />;
   }
 
-  // Check role-based access if roles are specified
-  if (requiredRoles && roles) {
-    const hasRequiredRole = requiredRoles.some(role => roles.includes(role));
-    
-    if (!hasRequiredRole) {
-      return <Navigate to="/unauthorized" state={{ from: location.pathname }} replace />;
-    }
-  }
-
-  // User is authenticated and has required roles (or no roles required)
   return <>{children}</>;
 } 

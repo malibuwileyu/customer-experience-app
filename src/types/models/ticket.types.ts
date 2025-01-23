@@ -45,6 +45,24 @@ export interface Ticket {
   internal_notes?: string
   attachments?: string[]
   tags?: string[]
+  category?: {
+    id: string
+    name: string
+  }
+  team?: {
+    id: string
+    name: string
+  }
+  assigned_to?: {
+    id: string
+    full_name: string
+    avatar_url?: string | null
+  }
+  created_by_user?: {
+    id: string
+    full_name: string
+    avatar_url?: string | null
+  }
 }
 
 export interface TicketComment extends Omit<DBTicketComment, 'user_id'> {

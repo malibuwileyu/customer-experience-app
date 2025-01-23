@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation"
 import { TicketCard } from "./ticket-card"
-import { Ticket } from "@/types/tickets"
+import { Ticket } from "../../../types/models/ticket.types"
 import { Skeleton } from "@/components/common/skeleton"
 
 interface TicketListProps {

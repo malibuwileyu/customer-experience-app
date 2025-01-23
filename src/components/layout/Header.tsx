@@ -65,6 +65,9 @@ export function Header() {
             <Link to="/app/dashboard" className="transition-colors hover:text-foreground/80">
               Dashboard
             </Link>
+            <Link to="/app/user-tickets" className="transition-colors hover:text-foreground/80">
+              My Tickets
+            </Link>
             {(roles?.includes('admin') || roles?.includes('agent')) && (
               <Link to="/app/tickets" className="transition-colors hover:text-foreground/80">
                 Tickets

@@ -4,7 +4,7 @@ import { formatDistanceToNow } from "date-fns"
 import { Badge } from "@/components/common/badge"
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/common/card"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/common/avatar"
-import { Ticket } from "@/types/tickets"
+import { Ticket } from "../../../types/models/ticket.types"
 import { ChevronRight } from "lucide-react"
 
 interface TicketCardProps {

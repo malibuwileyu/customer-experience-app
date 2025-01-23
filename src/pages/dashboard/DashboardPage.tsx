@@ -12,6 +12,7 @@ import { BuggyCounter } from '../../components/common/buggy-counter';
 import { Dialog, DialogContent, DialogTrigger } from '../../components/common/dialog';
 import { CreateTicketForm } from '../../components/tickets/create-ticket-form';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 
 export function DashboardPage() {
   const [showForms, setShowForms] = useState(false);
@@ -50,6 +51,9 @@ export function DashboardPage() {
                 <CreateTicketForm />
               </DialogContent>
             </Dialog>
+            <Button variant="outline" className="w-full" asChild>
+              <Link to="/app/user-tickets">My Tickets</Link>
+            </Button>
             <Button variant="outline" className="w-full">View Knowledge Base</Button>
           </CardContent>
         </Card>
