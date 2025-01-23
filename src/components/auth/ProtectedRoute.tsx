@@ -39,7 +39,7 @@ import type { ProtectedRouteProps } from '../../types/auth.types';
 export function ProtectedRoute({ children, requiredRoles }: ProtectedRouteProps) {
   const { user, isLoading } = useAuth();
   const location = useLocation();
-  const { roles, isLoading: isLoadingRoles } = useUserRoles();
+  const { roles, isLoading: isLoadingRoles } = useUserRoles(user?.id);
 
   console.log('ProtectedRoute:', {
     path: location.pathname,

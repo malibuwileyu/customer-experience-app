@@ -12,6 +12,7 @@
     "coverage": "vitest run --coverage",
     "create-test-users": "tsx scripts/create-test-users.ts",
     "verify-test-users": "tsx scripts/verify-test-users.ts",
+    "cleanup-test-users": "tsx scripts/cleanup-test-users.ts",
     "test:middleware": "vitest run src/middleware/__tests__/*.test.ts",
     "test:middleware:watch": "vitest watch src/middleware/__tests__/*.test.ts",
     "test:services": "vitest run src/services/__tests__/*.test.ts",

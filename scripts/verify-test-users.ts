@@ -20,38 +20,79 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey, {
 });
 
 async function verifyTestUsers() {
-  // Get all users
-  const { data: users, error: usersError } = await supabase.auth.admin.listUsers();
-  
-  if (usersError) {
-    console.error('Failed to list users:', usersError.message);
-    return;
-  }
+  try {
+    // Get all users
+    const { data: users, error: usersError } = await supabase.auth.admin.listUsers();
+    
+    if (usersError) {
+      console.error('Failed to list users:', usersError.message);
+      return;
+    }
 
-  // Get all roles
-  const { data: roles, error: rolesError } = await supabase
-    .from('user_roles')
-    .select('*');
+    // Get all roles from user_roles table
+    const { data: userRoles, error: rolesError } = await supabase
+      .from('user_roles')
+      .select('*');
 
-  if (rolesError) {
-    console.error('Failed to list roles:', rolesError.message);
-    return;
-  }
+    if (rolesError) {
+      console.error('Failed to list user roles:', rolesError.message);
+      return;
+    }
 
-  console.log('\nTest Users:');
-  console.log('===========');
+    // Get all profiles
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('*');
 
-  // Map roles to users
-  users.users.forEach(user => {
-    const userRole = roles?.find(r => r.user_id === user.id);
-    console.log(`
+    if (profilesError) {
+      console.error('Failed to list profiles:', profilesError.message);
+      return;
+    }
+
+    console.log('\nTest Users:');
+    console.log('===========');
+
+    // Filter for test users (emails containing 'test' or 'testuser')
+    const testUsers = users.users.filter(user => 
+      user.email?.toLowerCase().includes('test') || 
+      user.email?.toLowerCase().includes('testuser')
+    );
+
+    // Map roles and profiles to users
+    testUsers.forEach(user => {
+      const userRole = userRoles?.find(r => r.user_id === user.id);
+      const profile = profiles?.find(p => p.id === user.id);
+
+      console.log(`
 Email: ${user.email}
 ID: ${user.id}
-Role: ${userRole?.role || 'No role assigned'}
+User Role (user_roles): ${userRole?.role || 'No role assigned'}
+Profile Role (profiles): ${profile?.role || 'No profile found'}
 Created: ${new Date(user.created_at).toLocaleString()}
 Last Sign In: ${user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString() : 'Never'}
-    `);
-  });
+Role Match: ${userRole?.role === profile?.role ? '✅' : '❌'}
+      `);
+    });
+
+    // Check for any mismatches
+    const mismatches = testUsers.filter(user => {
+      const userRole = userRoles?.find(r => r.user_id === user.id);
+      const profile = profiles?.find(p => p.id === user.id);
+      return userRole?.role !== profile?.role;
+    });
+
+    if (mismatches.length > 0) {
+      console.log('\n⚠️  Role Mismatches Found:');
+      console.log('=======================');
+      mismatches.forEach(user => {
+        const userRole = userRoles?.find(r => r.user_id === user.id);
+        const profile = profiles?.find(p => p.id === user.id);
+        console.log(`${user.email}: user_roles=${userRole?.role}, profiles=${profile?.role}`);
+      });
+    }
+  } catch (error) {
+    console.error('Failed to verify users:', error);
+  }
 }
 
 verifyTestUsers()

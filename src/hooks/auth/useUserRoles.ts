@@ -8,7 +8,7 @@
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '../../lib/supabase';
+import { serviceClient } from '../../services/role-management.service';
 
 /**
  * Interface for the useUserRoles hook result
@@ -63,23 +63,38 @@ export function useUserRoles(userId?: string): UseUserRolesResult {
   const { data: roles, isLoading, error } = useQuery({
     queryKey: ['user-roles', userId],
     queryFn: async () => {
+      console.log('Fetching roles for user:', userId);
       if (!userId) return [];
 
-      const { data, error } = await supabase
+      const { data, error } = await serviceClient
         .from('user_roles')
         .select('role')
-        .eq('user_id', userId)
-        .throwOnError();
+        .eq('user_id', userId);
 
-      if (error) throw error;
-      return (data || []).map(r => r.role);
+      console.log('Role fetch result:', { data, error });
+
+      if (error) {
+        console.error('Error fetching roles:', error);
+        throw error;
+      }
+
+      const mappedRoles = (data || []).map((r: { role: string }) => r.role);
+      console.log('Mapped roles:', mappedRoles);
+      return mappedRoles;
     },
     enabled: !!userId, // Only run query if userId is provided
     staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
     gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
     retry: 2, // Retry failed requests twice
-    refetchOnMount: false, // Don't refetch on every mount
-    refetchOnWindowFocus: false, // Don't refetch when window regains focus
+    refetchOnMount: true, // Changed to true to ensure roles are fetched
+    refetchOnWindowFocus: true, // Changed to true to keep roles up to date
+  });
+
+  console.log('useUserRoles hook result:', {
+    userId,
+    roles,
+    isLoading,
+    error
   });
 
   return {

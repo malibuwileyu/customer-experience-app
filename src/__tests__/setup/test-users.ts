@@ -54,38 +54,70 @@ const REQUIRED_PERMISSIONS = [
  */
 export async function setupTestUsers() {
   try {
+    // Check for existing test users first
+    const { data: existingUsers, error: listError } = await serviceClient.auth.admin.listUsers()
+    if (listError) throw listError
+
     // Create test users
     for (const [key, userData] of Object.entries(TEST_USER_DATA)) {
       try {
-        // Create new user
-        const { data: authData, error: createError } = await serviceClient.auth.admin.createUser({
-          email: userData.email,
-          password: userData.password,
-          email_confirm: true
-        })
+        // Check if user with this email already exists
+        const existingUser = existingUsers.users.find(u => u.email === userData.email)
 
-        if (createError) {
-          console.error(`Failed to create user ${userData.email}:`, createError)
-          throw createError
+        let userId: string
+
+        if (existingUser) {
+          console.log(`Using existing test user ${userData.email}`)
+          userId = existingUser.id
+          
+          // Store user data
+          TEST_USERS[key as keyof typeof TEST_USER_DATA] = {
+            ...userData,
+            id: existingUser.id
+          }
+        } else {
+          // Create new user
+          const { data: authData, error: createError } = await serviceClient.auth.admin.createUser({
+            email: userData.email,
+            password: userData.password,
+            email_confirm: true
+          })
+
+          if (createError) {
+            console.error(`Failed to create user ${userData.email}:`, createError)
+            throw createError
+          }
+
+          // Verify user was created
+          if (!authData?.user) {
+            throw new Error(`Failed to create user ${userData.email}`)
+          }
+
+          userId = authData.user.id
+          console.log(`Created new test user ${userData.email}`)
+
+          // Store user data
+          TEST_USERS[key as keyof typeof TEST_USER_DATA] = {
+            ...userData,
+            id: authData.user.id
+          }
         }
 
-        // Verify user was created
-        if (!authData?.user) {
-          throw new Error(`Failed to create user ${userData.email}`)
-        }
-
-        // Store user data with actual auth ID
-        TEST_USERS[key as keyof typeof TEST_USER_DATA] = {
-          ...userData,
-          id: authData.user.id
-        }
-
-        // Assign role using service client (bypasses RLS)
-        const { error: roleError } = await serviceClient
+        // Check for existing role
+        const { data: existingRole } = await serviceClient
           .from('user_roles')
-          .insert({ user_id: authData.user.id, role: userData.role })
+          .select('role')
+          .eq('user_id', userId)
+          .single()
 
-        if (roleError) throw roleError
+        if (!existingRole) {
+          // Assign role using service client (bypasses RLS)
+          const { error: roleError } = await serviceClient
+            .from('user_roles')
+            .insert({ user_id: userId, role: userData.role })
+
+          if (roleError) throw roleError
+        }
       } catch (error) {
         console.error(`Error setting up user ${userData.email}:`, error)
         throw error
@@ -164,7 +196,19 @@ export async function cleanupTestUsers() {
         .delete()
         .eq('user_id', id)
 
-      // Delete auth user
+      // Delete user profile
+      await serviceClient
+        .from('profiles')
+        .delete()
+        .eq('id', id)
+
+      // Delete any team memberships
+      await serviceClient
+        .from('team_members')
+        .delete()
+        .eq('user_id', id)
+
+      // Delete auth user (this should cascade delete other related data)
       await serviceClient.auth.admin.deleteUser(id)
     }
 

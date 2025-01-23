@@ -50,11 +50,14 @@ async function createTestUsers() {
         console.log(`User ${account.email} already exists, using existing user`);
         userId = existingUser.id;
       } else {
-        // Create new user
+        // Create new user with role in metadata
         const { data: authData, error: authError } = await supabase.auth.admin.createUser({
           email: account.email,
           password: account.password,
-          email_confirm: true
+          email_confirm: true,
+          user_metadata: {
+            role: account.role
+          }
         });
 
         if (authError) {

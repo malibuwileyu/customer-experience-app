@@ -7,9 +7,10 @@
  */
 
 import '@testing-library/jest-dom'
-import { expect, afterEach, vi } from 'vitest'
+import { expect, afterEach, afterAll, vi } from 'vitest'
 import { cleanup } from '@testing-library/react'
 import * as matchers from '@testing-library/jest-dom/matchers'
+import { cleanupTestUsers } from '../__tests__/setup/test-users'
 
 expect.extend(matchers)
 
@@ -37,6 +38,15 @@ Element.prototype.releasePointerCapture = vi.fn()
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
+})
+
+// Clean up test users after all tests
+afterAll(async () => {
+  try {
+    await cleanupTestUsers()
+  } catch (error) {
+    console.warn('Failed to clean up test users:', error)
+  }
 })
 
 // Mock ResizeObserver
