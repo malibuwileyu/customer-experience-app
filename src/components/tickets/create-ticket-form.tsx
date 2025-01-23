@@ -19,6 +19,7 @@ import { ticketService } from '../../services/ticket.service'
 import { useAuth } from '../../contexts/AuthContext'
 import { useUserRoles } from '../../hooks/auth/useUserRoles'
 import { toast } from 'sonner'
+import { useNavigate } from 'react-router-dom'
 
 interface CreateTicketFormProps {
   onClose?: () => void
@@ -50,6 +51,7 @@ const defaultValues: Partial<TicketFormData> = {
 }
 
 export function CreateTicketForm({ onClose }: CreateTicketFormProps) {
+  const navigate = useNavigate()
   const form = useForm<TicketFormData>({
     resolver: zodResolver(ticketFormSchema),
     defaultValues,
@@ -62,7 +64,15 @@ export function CreateTicketForm({ onClose }: CreateTicketFormProps) {
   const isStaff = roles?.some(role => ['admin', 'agent'].includes(role))
 
   const { mutateAsync: createTicketMutate, isPending, error } = useCreateTicket({
-    onSuccess: onClose
+    onSuccess: (ticket) => {
+      onClose?.()
+      // Navigate based on user role
+      if (isStaff) {
+        navigate(`/app/tickets/${ticket.id}`)
+      } else {
+        navigate(`/app/user-tickets/${ticket.id}`)
+      }
+    }
   })
   const [uploadError, setUploadError] = useState<string>()
   const [pendingFiles, setPendingFiles] = useState<File[]>([])

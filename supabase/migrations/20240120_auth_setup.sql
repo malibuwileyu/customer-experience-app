@@ -23,19 +23,29 @@ RETURNS TRIGGER
 LANGUAGE plpgsql
 SECURITY DEFINER SET search_path = public
 AS $$
+DECLARE
+  assigned_role text;
 BEGIN
-  -- Create profile with role from metadata if provided, otherwise default to customer
+  -- Determine role from metadata, default to customer
+  assigned_role := CASE 
+    WHEN NEW.raw_user_meta_data->>'role' IS NOT NULL 
+    AND NEW.raw_user_meta_data->>'role' IN ('admin', 'agent', 'customer')
+    THEN NEW.raw_user_meta_data->>'role'
+    ELSE 'customer'
+  END;
+
+  -- Create profile
   INSERT INTO public.profiles (id, full_name, role)
   VALUES (
     NEW.id,
     COALESCE(NEW.raw_user_meta_data->>'full_name', NULL),
-    CASE 
-      WHEN NEW.raw_user_meta_data->>'role' IS NOT NULL 
-      AND NEW.raw_user_meta_data->>'role' IN ('admin', 'agent', 'customer')
-      THEN NEW.raw_user_meta_data->>'role'
-      ELSE 'customer'
-    END
+    assigned_role
   );
+
+  -- Create user role
+  INSERT INTO public.user_roles (user_id, role)
+  VALUES (NEW.id, assigned_role);
+
   RETURN NEW;
 END;
 $$;

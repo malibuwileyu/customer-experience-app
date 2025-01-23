@@ -162,13 +162,21 @@ export function TicketDetails({ ticketId, isUserTicket = false }: TicketDetailsP
       {/* Attachments Section */}
       {ticket.attachments && ticket.attachments.length > 0 && (
         <TicketAttachments 
-          attachments={ticket.attachments.map(path => ({
-            name: path.split('/').pop() || path,
-            path,
-            type: path.toLowerCase().endsWith('.jpg') || 
-                  path.toLowerCase().endsWith('.png') || 
-                  path.toLowerCase().endsWith('.gif') ? 'image' : 'file'
-          } as const))} 
+          attachments={ticket.attachments.map(path => {
+            // Safely handle path splitting
+            const fileName = path ? path.split('/').pop() || path : 'unknown';
+            const fileType = path ? (
+              path.toLowerCase().endsWith('.jpg') || 
+              path.toLowerCase().endsWith('.png') || 
+              path.toLowerCase().endsWith('.gif') ? 'image' : 'file'
+            ) : 'file';
+            
+            return {
+              name: fileName,
+              path: path || '',
+              type: fileType
+            };
+          })} 
         />
       )}
 

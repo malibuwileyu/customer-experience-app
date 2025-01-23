@@ -1,10 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ticketService } from '../../services/ticket.service'
 import { toast } from 'sonner'
-import type { CreateTicketDTO } from '../../types/models/ticket.types'
+import type { CreateTicketDTO, Ticket } from '../../types/models/ticket.types'
 
 interface UseCreateTicketOptions {
-  onSuccess?: () => void
+  onSuccess?: (ticket: Ticket) => void
 }
 
 export function useCreateTicket({ onSuccess }: UseCreateTicketOptions = {}) {
@@ -20,10 +20,10 @@ export function useCreateTicket({ onSuccess }: UseCreateTicketOptions = {}) {
         throw error
       }
     },
-    onSuccess: () => {
+    onSuccess: (ticket) => {
       queryClient.invalidateQueries({ queryKey: ['tickets'] })
       toast.success('Ticket created successfully')
-      onSuccess?.()
+      onSuccess?.(ticket)
     },
     onError: (error) => {
       console.error('Error creating ticket:', error)
