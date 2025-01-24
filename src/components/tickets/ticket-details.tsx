@@ -18,8 +18,6 @@ import type { Ticket, TicketComment } from "../../types/models/ticket.types"
 import { CommentForm } from "./comment-form"
 import { CommentList } from "./comment-list"
 import { TicketAttachments } from './ticket-attachments'
-import type { Attachment } from './ticket-attachments'
-import type { TicketAttachment } from '../../types/models/ticket.model'
 import { toast } from 'sonner'
 
 interface TicketDetailsProps {
@@ -30,25 +28,51 @@ interface TicketDetailsProps {
   isUserTicket?: boolean;
 }
 
-function normalizeAttachment(attachment: string | TicketAttachment): Attachment {
+interface NormalizedAttachment {
+  path: string;
+  filename: string;
+  isPreviewable: boolean;
+}
+
+interface AttachmentObject {
+  name: string;
+  path: string;
+  type: string;
+}
+
+function normalizeAttachment(attachment: unknown): NormalizedAttachment | null {
+  console.log('Normalizing attachment:', attachment);
+  
+  // Handle string attachments (legacy format)
   if (typeof attachment === 'string') {
     const cleanPath = attachment.startsWith('/') ? attachment.slice(1) : attachment;
-    const fileName = cleanPath.split('/').pop() || cleanPath;
+    const filename = cleanPath.split('/').pop() || '';
+    const fileExtension = filename.split('.').pop()?.toLowerCase() || '';
+    const isPreviewable = ['jpg', 'jpeg', 'png', 'gif', 'pdf'].includes(fileExtension);
+    
     return {
-      name: fileName,
       path: cleanPath,
-      type: cleanPath.toLowerCase().match(/\.(jpg|jpeg|png|gif)$/) ? 'image' : 'file'
+      filename,
+      isPreviewable
     };
   }
   
-  const path = attachment.file_url || '';
-  const cleanPath = path.startsWith('/') ? path.slice(1) : path;
-  return {
-    name: attachment.file_name || 'Unknown file',
-    path: cleanPath,
-    type: (attachment.file_type?.startsWith('image/') || 
-           cleanPath.toLowerCase().match(/\.(jpg|jpeg|png|gif)$/)) ? 'image' : 'file'
-  };
+  // Handle object attachments (new format)
+  if (attachment && typeof attachment === 'object' && 'path' in attachment && 'name' in attachment) {
+    const att = attachment as AttachmentObject;
+    const cleanPath = att.path.startsWith('/') ? att.path.slice(1) : att.path;
+    const fileExtension = att.name.split('.').pop()?.toLowerCase() || '';
+    const isPreviewable = ['jpg', 'jpeg', 'png', 'gif', 'pdf'].includes(fileExtension);
+    
+    return {
+      path: cleanPath,
+      filename: att.name,
+      isPreviewable
+    };
+  }
+  
+  console.warn('Invalid attachment format:', attachment);
+  return null;
 }
 
 export function TicketDetails({ ticket: initialTicket, ticketId, onStatusChange, isUpdating = false }: TicketDetailsProps) {
@@ -70,6 +94,7 @@ export function TicketDetails({ ticket: initialTicket, ticketId, onStatusChange,
   useEffect(() => {
     if (ticketQuery.data) {
       console.log('Setting ticket from query:', ticketQuery.data)
+      console.log('Ticket attachments:', ticketQuery.data.attachments)
       setTicket(ticketQuery.data)
     }
   }, [ticketQuery.data])
@@ -118,9 +143,9 @@ export function TicketDetails({ ticket: initialTicket, ticketId, onStatusChange,
     )
   }
 
-  const normalizedAttachments = ticket.attachments
+  const normalizedAttachments = ticket?.attachments
     ?.map(normalizeAttachment)
-    .filter(attachment => attachment.path && attachment.path.trim() !== '') || null
+    .filter(attachment => attachment !== null) || null
 
   console.log('Normalized attachments:', normalizedAttachments)
 
@@ -165,14 +190,16 @@ export function TicketDetails({ ticket: initialTicket, ticketId, onStatusChange,
       <div className="space-y-4">
         <p className="text-gray-700">{ticket.description}</p>
 
-        {normalizedAttachments && normalizedAttachments.length > 0 && (
+        {ticket?.attachments && ticket.attachments.length > 0 && (
           <div className="mt-4">
-            <h3 className="mb-2 font-medium">Attachments</h3>
-            <TicketAttachments 
-              attachments={normalizedAttachments}
+            <h3 className="text-lg font-semibold mb-2">Attachments</h3>
+            <TicketAttachments
+              attachments={ticket.attachments
+                .map(normalizeAttachment)
+                .filter((att): att is NormalizedAttachment => att !== null)}
               onError={(error) => {
-                console.error('Attachment error:', error)
-                toast.error('Failed to load attachment')
+                console.error('Error loading attachments:', error);
+                toast.error('Error loading attachments. Please try again later');
               }}
             />
           </div>

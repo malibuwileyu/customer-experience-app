@@ -49,6 +49,8 @@ export const ticketService = {
   },
 
   async getTicket(id: string): Promise<Ticket> {
+    console.log('Fetching ticket with ID:', id);
+    
     const { data, error } = await supabase
       .from('tickets')
       .select('*')
@@ -60,7 +62,17 @@ export const ticketService = {
       throw error
     }
 
-    return data
+    console.log('Raw ticket data:', data);
+    console.log('Raw attachments:', data.attachments);
+
+    // Ensure attachments is always an array of strings
+    const attachments = Array.isArray(data.attachments) ? data.attachments : [];
+    console.log('Processed attachments:', attachments);
+
+    return {
+      ...data,
+      attachments
+    }
   },
 
   async getTickets(filters?: TicketFilters, page: number = 1, pageSize: number = 10): Promise<PaginatedResponse<Ticket>> {

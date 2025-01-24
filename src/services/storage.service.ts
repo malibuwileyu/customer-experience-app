@@ -63,16 +63,24 @@ export async function getFileUrl(path: string): Promise<string> {
   console.log('Getting signed URL for path:', path);
   
   try {
+    // Ensure path is properly formatted
+    const cleanPath = path.startsWith('/') ? path.slice(1) : path;
+    console.log('Using clean path:', cleanPath);
+
     const { data, error } = await supabase.storage
       .from('ticket-attachments')
-      .createSignedUrl(path, 3600); // 1 hour expiry
+      .createSignedUrl(cleanPath, 3600); // 1 hour expiry
 
     if (error) {
       console.error('Failed to get signed URL:', error);
       throw error;
     }
 
-    console.log('Successfully generated signed URL for path:', path);
+    if (!data?.signedUrl) {
+      throw new Error('No signed URL returned');
+    }
+
+    console.log('Successfully generated signed URL');
     return data.signedUrl;
   } catch (error) {
     console.error('Error in getFileUrl:', error);
