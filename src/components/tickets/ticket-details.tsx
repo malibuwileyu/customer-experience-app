@@ -138,9 +138,11 @@ export function TicketDetails({ ticket: initialTicket, ticketId, onStatusChange,
                   };
                 }
                 return {
-                  name: attachment.file_name,
-                  path: attachment.file_url,
-                  type: attachment.file_type.startsWith('image/') ? 'image' : 'file'
+                  name: attachment.file_name || 'Unknown file',
+                  path: attachment.file_url || '',
+                  type: attachment.file_type?.startsWith('image/') || attachment.file_url?.toLowerCase().endsWith('.jpg') || 
+                        attachment.file_url?.toLowerCase().endsWith('.png') || 
+                        attachment.file_url?.toLowerCase().endsWith('.gif') ? 'image' : 'file'
                 } as Attachment;
               })}
             />
