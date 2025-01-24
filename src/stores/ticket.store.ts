@@ -76,7 +76,7 @@ export const useTicketStore = create<TicketState>()(
       fetchTickets: async () => {
         try {
           set({ isLoading: true, error: null })
-          const response = await ticketService.getTickets(get().filters, 1, 10)
+          const response = await ticketService.getTickets(get().filters)
           set({ tickets: response.data, isLoading: false })
         } catch (error) {
           set({ error: error as Error, isLoading: false })

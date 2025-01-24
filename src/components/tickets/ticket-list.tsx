@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useTickets } from '../../hooks/tickets/use-tickets'
+import { useAllTickets } from '../../hooks/tickets/use-all-tickets'
 import type { TicketFilters, TicketStatus, TicketPriority } from '../../types/models/ticket.types'
 import { Card } from '../common/card'
 import { Input } from '../common/input'
@@ -16,29 +17,29 @@ interface TicketListProps {
   selectedTickets?: string[]
   onSelectTicket?: (ticketId: string) => void
   onSelectAll?: (ticketIds: string[]) => void
+  isAdminView?: boolean
 }
 
-export function TicketList({ selectedTickets = [], onSelectTicket, onSelectAll }: TicketListProps) {
+export function TicketList({ selectedTickets = [], onSelectTicket, onSelectAll, isAdminView = false }: TicketListProps) {
   const [filters, setFilters] = useState<TicketFilters>({})
-  const [page, setPage] = useState(1)
-  const pageSize = 10
 
-  const { 
-    tickets, 
-    isLoading, 
-    error,
-    totalCount,
-    totalPages,
-    currentPage 
-  } = useTickets({ 
-    filters, 
-    page, 
-    pageSize 
-  })
+  // Use different hooks based on view type
+  const {
+    tickets: filteredTickets,
+    isLoading: isFilteredLoading,
+    error: filteredError
+  } = useTickets({ filters })
 
-  const handlePageChange = (newPage: number) => {
-    setPage(newPage)
-  }
+  const {
+    tickets: allTickets,
+    isLoading: isAllLoading,
+    error: allError
+  } = useAllTickets()
+
+  // Use the appropriate data based on view type
+  const tickets = isAdminView ? allTickets : filteredTickets
+  const isLoading = isAdminView ? isAllLoading : isFilteredLoading
+  const error = isAdminView ? allError : filteredError
 
   const handleSelectAll = () => {
     if (!tickets?.length || !onSelectAll) return
@@ -57,61 +58,62 @@ export function TicketList({ selectedTickets = [], onSelectTicket, onSelectAll }
 
   return (
     <div className="space-y-6">
-      <div className="flex gap-4 flex-wrap">
-        <Input
-          placeholder="Search tickets..."
-          className="max-w-xs"
-          value={filters.search || ''}
-          onChange={(e) => setFilters({ ...filters, search: e.target.value })}
-          aria-label="Search tickets"
-        />
-        
-        <Select
-          value={filters.status}
-          onValueChange={(value) => setFilters({ ...filters, status: value === 'all' ? undefined : value as TicketStatus })}
-        >
-          <SelectTrigger className="w-[180px]" aria-label="Filter by status">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Filter by status</SelectItem>
-            <SelectItem value="open">Open</SelectItem>
-            <SelectItem value="in_progress">In Progress</SelectItem>
-            <SelectItem value="resolved">Resolved</SelectItem>
-            <SelectItem value="closed">Closed</SelectItem>
-          </SelectContent>
-        </Select>
+      {!isAdminView && (
+        <div className="flex gap-4 flex-wrap">
+          <Input
+            placeholder="Search tickets..."
+            className="max-w-xs"
+            value={filters.search || ''}
+            onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+            aria-label="Search tickets"
+          />
+          
+          <Select
+            value={filters.status}
+            onValueChange={(value) => setFilters({ ...filters, status: value === 'all' ? undefined : value as TicketStatus })}
+          >
+            <SelectTrigger className="w-[180px]" aria-label="Filter by status">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Filter by status</SelectItem>
+              <SelectItem value="open">Open</SelectItem>
+              <SelectItem value="in_progress">In Progress</SelectItem>
+              <SelectItem value="resolved">Resolved</SelectItem>
+              <SelectItem value="closed">Closed</SelectItem>
+            </SelectContent>
+          </Select>
 
-        <Select
-          value={filters.priority}
-          onValueChange={(value) => setFilters({ ...filters, priority: value === 'all' ? undefined : value as TicketPriority })}
-        >
-          <SelectTrigger className="w-[180px]" aria-label="Filter by priority">
-            <SelectValue placeholder="Filter by priority" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Filter by priority</SelectItem>
-            <SelectItem value="low">Low</SelectItem>
-            <SelectItem value="medium">Medium</SelectItem>
-            <SelectItem value="high">High</SelectItem>
-            <SelectItem value="urgent">Urgent</SelectItem>
-          </SelectContent>
-        </Select>
+          <Select
+            value={filters.priority}
+            onValueChange={(value) => setFilters({ ...filters, priority: value === 'all' ? undefined : value as TicketPriority })}
+          >
+            <SelectTrigger className="w-[180px]" aria-label="Filter by priority">
+              <SelectValue placeholder="Filter by priority" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Filter by priority</SelectItem>
+              <SelectItem value="low">Low</SelectItem>
+              <SelectItem value="medium">Medium</SelectItem>
+              <SelectItem value="high">High</SelectItem>
+              <SelectItem value="urgent">Urgent</SelectItem>
+            </SelectContent>
+          </Select>
 
-        <Button 
-          variant="outline"
-          onClick={() => {
-            setFilters({
-              status: undefined,
-              priority: undefined,
-              search: undefined
-            })
-            setPage(1)
-          }}
-        >
-          Clear Filters
-        </Button>
-      </div>
+          <Button 
+            variant="outline"
+            onClick={() => {
+              setFilters({
+                status: undefined,
+                priority: undefined,
+                search: undefined
+              })
+            }}
+          >
+            Clear Filters
+          </Button>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="space-y-4">
@@ -155,42 +157,6 @@ export function TicketList({ selectedTickets = [], onSelectTicket, onSelectAll }
               />
             ))}
           </div>
-
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between border-t pt-4">
-              <div className="text-sm text-muted-foreground">
-                Showing {((currentPage - 1) * pageSize) + 1}-{Math.min(currentPage * pageSize, totalCount)} of {totalCount} tickets
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                >
-                  Previous
-                </Button>
-                {[...Array(totalPages)].map((_, i) => (
-                  <Button
-                    key={i + 1}
-                    variant={currentPage === i + 1 ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => handlePageChange(i + 1)}
-                  >
-                    {i + 1}
-                  </Button>
-                ))}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
-          )}
         </>
       )}
     </div>

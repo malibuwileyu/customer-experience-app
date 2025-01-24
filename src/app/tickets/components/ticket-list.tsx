@@ -2,16 +2,30 @@
 
 import { useRouter } from "next/navigation"
 import { TicketCard } from "./ticket-card"
-import { Ticket } from "../../../types/models/ticket.types"
 import { Skeleton } from "@/components/common/skeleton"
+import { useAllTickets } from "@/hooks/tickets/use-all-tickets"
+import { useTickets } from "@/hooks/tickets/use-tickets"
+import { useAuth } from "@/contexts/AuthContext"
 
-interface TicketListProps {
-  tickets?: Ticket[]
-  isLoading?: boolean
-}
-
-export function TicketList({ tickets = [], isLoading = false }: TicketListProps) {
+export function TicketList() {
   const router = useRouter()
+  const { user } = useAuth()
+  console.log('Auth user data:', user)
+  
+  const isAdminOrAgent = user?.role === 'admin' || user?.role === 'agent'
+  console.log('Role check in TicketList:', { 
+    userRole: user?.role,
+    isAdminOrAgent,
+    usingHook: isAdminOrAgent ? 'useAllTickets' : 'useTickets'
+  })
+
+  // Only fetch the appropriate tickets based on user role
+  const {
+    tickets,
+    isLoading,
+  } = isAdminOrAgent 
+    ? useAllTickets()
+    : useTickets({ filters: {} })
 
   if (isLoading) {
     return (
@@ -23,13 +37,16 @@ export function TicketList({ tickets = [], isLoading = false }: TicketListProps)
     )
   }
 
-  if (!tickets.length) {
+  if (!tickets?.length) {
     return (
       <div className="flex h-[400px] items-center justify-center rounded-lg border border-dashed">
         <div className="text-center">
           <h3 className="text-lg font-medium">No tickets found</h3>
           <p className="text-sm text-muted-foreground">
-            Try adjusting your filters or create a new ticket
+            {isAdminOrAgent 
+              ? "No tickets in the system yet"
+              : "Try adjusting your filters or create a new ticket"
+            }
           </p>
         </div>
       </div>

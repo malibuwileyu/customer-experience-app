@@ -6,8 +6,12 @@ import { TicketList } from "./components/ticket-list"
 import { TicketFilters } from "./components/ticket-filters"
 import { Dialog, DialogContent, DialogTrigger } from "@/components/common/dialog"
 import { CreateTicketForm } from "@/components/tickets/create-ticket-form"
+import { useAuth } from "@/contexts/AuthContext"
 
 export default function TicketsPage() {
+  const { user } = useAuth()
+  const isAdminOrAgent = user?.role === 'admin' || user?.role === 'agent'
+
   return (
     <div className="container mx-auto py-6 space-y-6">
       <div className="flex justify-between items-center">
@@ -26,7 +30,7 @@ export default function TicketsPage() {
       </div>
 
       <div className="flex flex-col space-y-8">
-        <TicketFilters />
+        {!isAdminOrAgent && <TicketFilters />}
         <TicketList />
       </div>
     </div>

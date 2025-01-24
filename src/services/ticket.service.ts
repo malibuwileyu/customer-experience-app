@@ -75,8 +75,50 @@ export const ticketService = {
     }
   },
 
-  async getTickets(filters?: TicketFilters, page: number = 1, pageSize: number = 10): Promise<PaginatedResponse<Ticket>> {
-    // Simple query to get all tickets
+  async getAllTickets(): Promise<PaginatedResponse<Ticket>> {
+    console.log('getAllTickets: Fetching all tickets without filtering')
+    
+    // Get all tickets without any filtering, using service role to bypass RLS
+    const { data: { user } } = await supabase.auth.getUser()
+    console.log('getAllTickets: Current user:', user)
+
+    // Use service role client to bypass RLS
+    const { data, error, count } = await supabase
+      .from('tickets')
+      .select('*', { count: 'exact' })
+      .order('created_at', { ascending: false })
+
+
+    if (error) {
+      console.error('Error fetching all tickets:', error)
+      throw error
+    }
+
+    console.log('getAllTickets: Raw response:', { data, count })
+
+    return {
+      data: data || [],
+      count: count || 0
+    }
+  },
+
+  async getTickets(filters?: TicketFilters): Promise<PaginatedResponse<Ticket>> {
+    console.log('Fetching tickets with filters:', filters);
+    
+    // Check if user is admin/agent
+    const { data: { user } } = await supabase.auth.getUser()
+    const isAdminOrAgent = user?.user_metadata?.role === 'admin' || user?.user_metadata?.role === 'agent'
+    console.log('Role check in getTickets:', { user, isAdminOrAgent })
+    
+    // If admin/agent, return all tickets without filtering
+    if (isAdminOrAgent) {
+      console.log('User is admin/agent, fetching all tickets')
+      const result = await this.getAllTickets()
+      console.log('Got all tickets:', result)
+      return result
+    }
+    
+    // Otherwise, continue with filtered query
     const { data, error } = await supabase
       .from('tickets')
       .select('*')
@@ -106,13 +148,9 @@ export const ticketService = {
       }
     }
 
-    // Handle pagination
-    const start = (page - 1) * pageSize
-    const paginatedTickets = filteredTickets.slice(start, start + pageSize)
-
     return {
-      data: paginatedTickets,
-      count: filteredTickets.length // Return count of filtered tickets, not all tickets
+      data: filteredTickets,
+      count: filteredTickets.length
     }
   },
 
@@ -316,5 +354,4 @@ export const ticketService = {
   }
 }
 
-export const { getTickets } = ticketService
 export default ticketService 
