@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQuery, useQueryClient, type UseQueryResult } from "@tanstack/react-query"
 import { ticketService } from "../../services/ticket.service"
 import { Skeleton } from "../common/skeleton"
 import { Badge } from "../common/badge"
@@ -52,25 +52,37 @@ export function TicketDetails({ ticket: initialTicket, ticketId, onStatusChange,
   const [ticket, setTicket] = useState<Ticket | undefined>(initialTicket)
   const queryClient = useQueryClient()
 
-  const { isLoading: isLoadingTicket } = useQuery<Ticket, Error>({
+  const ticketQuery = useQuery({
     queryKey: ['ticket', ticketId],
-    queryFn: () => ticketService.getTicket(ticketId!),
+    queryFn: async () => {
+      console.log('Fetching ticket:', ticketId)
+      if (!ticketId) throw new Error('No ticket ID provided')
+      const result = await ticketService.getTicket(ticketId)
+      console.log('Ticket fetch result:', result)
+      return result
+    },
     enabled: !!ticketId && !initialTicket,
-    gcTime: 0,
-    refetchOnMount: true,
-  })
+  }) as UseQueryResult<Ticket, Error>
 
   useEffect(() => {
+    if (ticketQuery.data) {
+      console.log('Setting ticket from query:', ticketQuery.data)
+      setTicket(ticketQuery.data)
+    }
+  }, [ticketQuery.data])
+
+  useEffect(() => {
+    console.log('Initial ticket:', initialTicket)
     if (initialTicket) {
       setTicket(initialTicket)
     }
   }, [initialTicket])
 
-  const { data: comments = [], isLoading: isLoadingComments } = useQuery<TicketComment[], Error>({
+  const commentsQuery = useQuery({
     queryKey: ['ticket-comments', ticket?.id],
     queryFn: () => ticketService.getTicketComments(ticket!.id),
     enabled: !!ticket?.id,
-  })
+  }) as UseQueryResult<TicketComment[], Error>
 
   const handleStatusChange = async (status: TicketStatus) => {
     if (!ticket) return
@@ -86,7 +98,15 @@ export function TicketDetails({ ticket: initialTicket, ticketId, onStatusChange,
     }
   }
 
-  if (isUpdating || isLoadingTicket || !ticket) {
+  if (ticketQuery.error) {
+    return (
+      <div className="p-4 text-red-500">
+        Error loading ticket: {ticketQuery.error.message}
+      </div>
+    )
+  }
+
+  if (isUpdating || ticketQuery.isLoading || !ticket) {
     return (
       <div className="space-y-4">
         <Skeleton className="h-8 w-full" />
@@ -183,13 +203,13 @@ export function TicketDetails({ ticket: initialTicket, ticketId, onStatusChange,
       </div>
 
       <div className="space-y-4">
-        {isLoadingComments ? (
+        {commentsQuery.isLoading ? (
           <div className="space-y-4">
             <Skeleton className="h-24" />
             <Skeleton className="h-24" />
           </div>
         ) : (
-          <CommentList comments={comments} />
+          <CommentList comments={commentsQuery.data || []} />
         )}
         <CommentForm 
           ticketId={ticket.id} 
