@@ -12,63 +12,77 @@ import {
 } from "../common/dropdown-menu"
 import { format } from "date-fns"
 import { ChevronDown } from "lucide-react"
-import { useState } from "react"
-import { TICKET_STATUS } from "../../types/models/ticket.types"
-import type { Ticket, TicketComment, CreateTicketCommentDTO } from "../../types/models/ticket.types"
+import { useState, useEffect } from "react"
+import { TICKET_STATUS, type TicketStatus } from "../../types/models/ticket.types"
+import type { Ticket, TicketComment } from "../../types/models/ticket.types"
 import { CommentForm } from "./comment-form"
 import { CommentList } from "./comment-list"
 import { TicketAttachments } from './ticket-attachments'
-import { Attachment } from './ticket-attachments'
-import { TicketAttachment } from '../../types/models/ticket.model'
+import type { Attachment } from './ticket-attachments'
+import type { TicketAttachment } from '../../types/models/ticket.model'
 import { toast } from 'sonner'
 
 interface TicketDetailsProps {
   ticket?: Ticket;
   ticketId?: string;
-  onStatusChange?: (status: string) => void;
+  onStatusChange?: (status: TicketStatus) => void;
   isUpdating?: boolean;
   isUserTicket?: boolean;
 }
 
+function normalizeAttachment(attachment: string | TicketAttachment): Attachment {
+  if (typeof attachment === 'string') {
+    const fileName = attachment.split('/').pop() || attachment;
+    return {
+      name: fileName,
+      path: attachment,
+      type: attachment.toLowerCase().match(/\.(jpg|jpeg|png|gif)$/) ? 'image' : 'file'
+    };
+  }
+  
+  return {
+    name: attachment.file_name || 'Unknown file',
+    path: attachment.file_url || '',
+    type: attachment.file_type?.startsWith('image/') || 
+          attachment.file_url?.toLowerCase().match(/\.(jpg|jpeg|png|gif)$/) ? 'image' : 'file'
+  };
+}
+
 export function TicketDetails({ ticket: initialTicket, ticketId, onStatusChange, isUpdating = false }: TicketDetailsProps) {
-  const [isSubmittingComment, setIsSubmittingComment] = useState(false)
+  const [ticket, setTicket] = useState<Ticket | undefined>(initialTicket)
   const queryClient = useQueryClient()
 
-  const { data: fetchedTicket, isLoading: isLoadingTicket } = useQuery<Ticket>({
+  const { isLoading: isLoadingTicket } = useQuery<Ticket, Error>({
     queryKey: ['ticket', ticketId],
     queryFn: () => ticketService.getTicket(ticketId!),
-    enabled: !!ticketId && !initialTicket
+    enabled: !!ticketId && !initialTicket,
+    gcTime: 0,
+    refetchOnMount: true,
   })
 
-  const ticket = initialTicket || fetchedTicket
-  
-  const { data: comments, isLoading: isLoadingComments } = useQuery<TicketComment[]>({
+  useEffect(() => {
+    if (initialTicket) {
+      setTicket(initialTicket)
+    }
+  }, [initialTicket])
+
+  const { data: comments = [], isLoading: isLoadingComments } = useQuery<TicketComment[], Error>({
     queryKey: ['ticket-comments', ticket?.id],
     queryFn: () => ticketService.getTicketComments(ticket!.id),
-    enabled: !!ticket?.id
+    enabled: !!ticket?.id,
   })
 
-  const handleStatusChange = async (newStatus: string) => {
+  const handleStatusChange = async (status: TicketStatus) => {
+    if (!ticket) return
+
     try {
-      onStatusChange?.(newStatus);
+      const updatedTicket = await ticketService.updateTicket(ticket.id, { status })
+      setTicket(updatedTicket)
+      onStatusChange?.(status)
+      queryClient.invalidateQueries({ queryKey: ['tickets'] })
     } catch (error) {
       console.error('Failed to update ticket status:', error)
       toast.error('Failed to update ticket status')
-    }
-  }
-
-  const handleCommentSubmit = async (data: CreateTicketCommentDTO) => {
-    if (!ticket) return;
-    
-    try {
-      setIsSubmittingComment(true)
-      await ticketService.addTicketComment(data)
-      await queryClient.invalidateQueries({ queryKey: ['ticket-comments', ticket.id] })
-    } catch (error) {
-      console.error('Failed to add comment:', error)
-      toast.error('Failed to add comment')
-    } finally {
-      setIsSubmittingComment(false)
     }
   }
 
@@ -80,6 +94,8 @@ export function TicketDetails({ ticket: initialTicket, ticketId, onStatusChange,
       </div>
     )
   }
+
+  const normalizedAttachments = ticket.attachments?.map(normalizeAttachment) || null
 
   return (
     <div className="space-y-6">
@@ -97,7 +113,7 @@ export function TicketDetails({ ticket: initialTicket, ticketId, onStatusChange,
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               {Object.entries(TICKET_STATUS).map(([key, value]) => (
-                <DropdownMenuItem key={key} onClick={() => handleStatusChange(key)}>
+                <DropdownMenuItem key={key} onClick={() => handleStatusChange(key as TicketStatus)}>
                   {value}
                 </DropdownMenuItem>
               ))}
@@ -122,30 +138,10 @@ export function TicketDetails({ ticket: initialTicket, ticketId, onStatusChange,
       <div className="space-y-4">
         <p className="text-gray-700">{ticket.description}</p>
 
-        {ticket.attachments && ticket.attachments.length > 0 && (
+        {normalizedAttachments && normalizedAttachments.length > 0 && (
           <div className="mt-4">
             <h3 className="mb-2 font-medium">Attachments</h3>
-            <TicketAttachments
-              attachments={ticket.attachments.map((attachment: string | TicketAttachment) => {
-                if (typeof attachment === 'string') {
-                  const fileName = attachment.split('/').pop() || attachment;
-                  return {
-                    name: fileName,
-                    path: attachment,
-                    type: attachment.toLowerCase().endsWith('.jpg') || 
-                          attachment.toLowerCase().endsWith('.png') || 
-                          attachment.toLowerCase().endsWith('.gif') ? 'image' : 'file'
-                  };
-                }
-                return {
-                  name: attachment.file_name || 'Unknown file',
-                  path: attachment.file_url || '',
-                  type: attachment.file_type?.startsWith('image/') || attachment.file_url?.toLowerCase().endsWith('.jpg') || 
-                        attachment.file_url?.toLowerCase().endsWith('.png') || 
-                        attachment.file_url?.toLowerCase().endsWith('.gif') ? 'image' : 'file'
-                } as Attachment;
-              })}
-            />
+            <TicketAttachments attachments={normalizedAttachments} />
           </div>
         )}
 
@@ -187,20 +183,26 @@ export function TicketDetails({ ticket: initialTicket, ticketId, onStatusChange,
       </div>
 
       <div className="space-y-4">
-        <h3 className="font-medium">Comments</h3>
-        <CommentForm
-          ticketId={ticket.id}
-          onSubmit={handleCommentSubmit}
-          isSubmitting={isSubmittingComment}
-        />
         {isLoadingComments ? (
           <div className="space-y-4">
             <Skeleton className="h-24" />
             <Skeleton className="h-24" />
           </div>
         ) : (
-          <CommentList comments={comments || []} />
+          <CommentList comments={comments} />
         )}
+        <CommentForm 
+          ticketId={ticket.id} 
+          onSubmit={async (data) => {
+            try {
+              await ticketService.addTicketComment(data)
+              queryClient.invalidateQueries({ queryKey: ['ticket-comments', ticket.id] })
+            } catch (error) {
+              console.error('Failed to add comment:', error)
+              toast.error('Failed to add comment')
+            }
+          }} 
+        />
       </div>
     </div>
   )
