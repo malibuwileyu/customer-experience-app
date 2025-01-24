@@ -32,19 +32,22 @@ interface TicketDetailsProps {
 
 function normalizeAttachment(attachment: string | TicketAttachment): Attachment {
   if (typeof attachment === 'string') {
-    const fileName = attachment.split('/').pop() || attachment;
+    const cleanPath = attachment.startsWith('/') ? attachment.slice(1) : attachment;
+    const fileName = cleanPath.split('/').pop() || cleanPath;
     return {
       name: fileName,
-      path: attachment,
-      type: attachment.toLowerCase().match(/\.(jpg|jpeg|png|gif)$/) ? 'image' : 'file'
+      path: cleanPath,
+      type: cleanPath.toLowerCase().match(/\.(jpg|jpeg|png|gif)$/) ? 'image' : 'file'
     };
   }
   
+  const path = attachment.file_url || '';
+  const cleanPath = path.startsWith('/') ? path.slice(1) : path;
   return {
     name: attachment.file_name || 'Unknown file',
-    path: attachment.file_url || '',
-    type: attachment.file_type?.startsWith('image/') || 
-          attachment.file_url?.toLowerCase().match(/\.(jpg|jpeg|png|gif)$/) ? 'image' : 'file'
+    path: cleanPath,
+    type: (attachment.file_type?.startsWith('image/') || 
+           cleanPath.toLowerCase().match(/\.(jpg|jpeg|png|gif)$/)) ? 'image' : 'file'
   };
 }
 
@@ -115,7 +118,11 @@ export function TicketDetails({ ticket: initialTicket, ticketId, onStatusChange,
     )
   }
 
-  const normalizedAttachments = ticket.attachments?.map(normalizeAttachment) || null
+  const normalizedAttachments = ticket.attachments
+    ?.map(normalizeAttachment)
+    .filter(attachment => attachment.path && attachment.path.trim() !== '') || null
+
+  console.log('Normalized attachments:', normalizedAttachments)
 
   return (
     <div className="space-y-6">
@@ -161,7 +168,13 @@ export function TicketDetails({ ticket: initialTicket, ticketId, onStatusChange,
         {normalizedAttachments && normalizedAttachments.length > 0 && (
           <div className="mt-4">
             <h3 className="mb-2 font-medium">Attachments</h3>
-            <TicketAttachments attachments={normalizedAttachments} />
+            <TicketAttachments 
+              attachments={normalizedAttachments}
+              onError={(error) => {
+                console.error('Attachment error:', error)
+                toast.error('Failed to load attachment')
+              }}
+            />
           </div>
         )}
 

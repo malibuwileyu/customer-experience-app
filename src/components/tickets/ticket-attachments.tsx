@@ -12,9 +12,10 @@ export interface Attachment {
 
 interface TicketAttachmentsProps {
   attachments: Attachment[] | null
+  onError?: (error: Error) => void
 }
 
-export function TicketAttachments({ attachments }: TicketAttachmentsProps) {
+export function TicketAttachments({ attachments, onError }: TicketAttachmentsProps) {
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({})
 
   useEffect(() => {
@@ -23,10 +24,13 @@ export function TicketAttachments({ attachments }: TicketAttachmentsProps) {
 
       const urlPromises = attachments.map(async (attachment) => {
         try {
+          console.log('Getting signed URL for:', attachment.path)
           const url = await getFileUrl(attachment.path)
+          console.log('Got signed URL:', url)
           return { path: attachment.path, url }
         } catch (error) {
           console.error('Error getting signed URL:', error)
+          onError?.(error instanceof Error ? error : new Error('Failed to get signed URL'))
           return { path: attachment.path, url: null }
         }
       })
@@ -41,7 +45,7 @@ export function TicketAttachments({ attachments }: TicketAttachmentsProps) {
     }
 
     loadSignedUrls()
-  }, [attachments])
+  }, [attachments, onError])
 
   if (!attachments?.length) return null
 
@@ -74,6 +78,7 @@ export function TicketAttachments({ attachments }: TicketAttachmentsProps) {
       URL.revokeObjectURL(objectUrl)
     } catch (error) {
       console.error('Error downloading file:', error)
+      onError?.(error instanceof Error ? error : new Error('Failed to download file'))
       toast.error('Failed to download file')
     }
   }
@@ -91,6 +96,7 @@ export function TicketAttachments({ attachments }: TicketAttachmentsProps) {
                 onError={(e) => {
                   console.error('Error loading image')
                   ;(e.target as HTMLImageElement).src = '/placeholder-image.png'
+                  onError?.(new Error('Failed to load image'))
                 }}
               />
             ) : (
