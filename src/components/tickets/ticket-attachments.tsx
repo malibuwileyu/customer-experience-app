@@ -1,23 +1,80 @@
+/**
+ * @fileoverview Ticket attachments component for displaying and managing file attachments
+ * @module components/tickets/ticket-attachments
+ * @description
+ * Displays and manages file attachments for tickets. Supports file downloads,
+ * loading states, and error handling. Includes preview capabilities for
+ * supported file types.
+ */
+
 import { getFileUrl } from '../../services/storage.service';
 import { useState } from 'react';
 import { FileIcon, ImageIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
-export interface Attachment {
+/**
+ * Represents a normalized attachment with consistent properties
+ * @interface NormalizedAttachment
+ * @property {string} path - Storage path of the attachment
+ * @property {string} filename - Original filename
+ * @property {boolean} isPreviewable - Whether the file can be previewed
+ */
+export interface NormalizedAttachment {
   path: string;
   filename: string;
   isPreviewable: boolean;
 }
 
+/**
+ * Props for the TicketAttachments component
+ * @interface TicketAttachmentsProps
+ * @property {NormalizedAttachment[]} attachments - Array of normalized attachments
+ * @property {function} [onError] - Callback when an error occurs during download
+ */
 interface TicketAttachmentsProps {
-  attachments: Attachment[];
+  attachments: NormalizedAttachment[];
   onError?: (error: Error) => void;
 }
 
+/**
+ * Normalizes a raw attachment path into a structured format
+ * @function normalizeAttachment
+ * @param {string} path - Raw attachment path from storage
+ * @returns {NormalizedAttachment | null} Normalized attachment or null if invalid
+ */
+export function normalizeAttachment(path: string): NormalizedAttachment | null {
+  try {
+    const filename = path.split('/').pop() || path;
+    const extension = filename.split('.').pop()?.toLowerCase() || '';
+    const isPreviewable = ['jpg', 'jpeg', 'png', 'gif'].includes(extension);
+    
+    return {
+      path,
+      filename,
+      isPreviewable
+    };
+  } catch (error) {
+    console.error('Failed to normalize attachment:', error);
+    return null;
+  }
+}
+
+/**
+ * TicketAttachments component for displaying and managing file attachments
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * <TicketAttachments
+ *   attachments={normalizedAttachments}
+ *   onError={handleError}
+ * />
+ * ```
+ */
 export function TicketAttachments({ attachments, onError }: TicketAttachmentsProps) {
   const [loadingStates, setLoadingStates] = useState<Record<string, boolean>>({});
 
-  const handleDownload = async (attachment: Attachment) => {
+  const handleDownload = async (attachment: NormalizedAttachment) => {
     try {
       setLoadingStates(prev => ({ ...prev, [attachment.path]: true }));
       

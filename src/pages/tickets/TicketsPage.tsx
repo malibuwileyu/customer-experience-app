@@ -3,10 +3,22 @@ import { useNavigate } from 'react-router-dom'
 import { Card, CardHeader, CardTitle, CardDescription } from '../../components/common/card'
 import { Button } from '../../components/common/button'
 import { TicketList } from '../../components/tickets/ticket-list'
+import { ticketService } from '../../services/ticket.service'
+import { useToast } from '../../hooks/use-toast'
+import { BulkStatusDialog } from '../../components/tickets/BulkStatusDialog'
+import { BulkPriorityDialog } from '../../components/tickets/BulkPriorityDialog'
+import { BulkAssignmentDialog } from '../../components/tickets/BulkAssignmentDialog'
+import { useProfile } from '../../hooks/use-profile'
 
 export function TicketsPage() {
   const navigate = useNavigate()
+  const { toast } = useToast()
+  const { profile } = useProfile()
   const [selectedTickets, setSelectedTickets] = useState<string[]>([])
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [showStatusDialog, setShowStatusDialog] = useState(false)
+  const [showPriorityDialog, setShowPriorityDialog] = useState(false)
+  const [showAssignmentDialog, setShowAssignmentDialog] = useState(false)
 
   const handleSelectTicket = (ticketId: string) => {
     setSelectedTickets(prev => 
@@ -20,66 +32,101 @@ export function TicketsPage() {
     setSelectedTickets(ticketIds)
   }
 
-  const handleBulkAction = (action: 'delete' | 'close' | 'assign') => {
-    // TODO: Implement bulk actions
-    console.log(`Bulk ${action} for tickets:`, selectedTickets)
+  const handleBulkAction = async (action: 'delete' | 'status' | 'priority' | 'assign') => {
+    if (action === 'delete') {
+      try {
+        setIsDeleting(true)
+        await ticketService.bulkDeleteTickets(selectedTickets)
+        toast.success(`Successfully deleted ${selectedTickets.length} ticket${selectedTickets.length === 1 ? '' : 's'}`)
+        setSelectedTickets([])
+      } catch (error) {
+        console.error('Error deleting tickets:', error)
+        toast.error('Failed to delete tickets. Please try again.')
+      } finally {
+        setIsDeleting(false)
+      }
+    } else if (action === 'status') {
+      setShowStatusDialog(true)
+    } else if (action === 'priority') {
+      setShowPriorityDialog(true)
+    } else if (action === 'assign') {
+      setShowAssignmentDialog(true)
+    }
+  }
+
+  const handleBulkUpdate = () => {
     setSelectedTickets([])
+    // The query invalidation is handled by the real-time subscription
   }
 
   return (
-    <div className="container mx-auto p-4 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-2xl font-bold">Tickets</h1>
-          <p className="text-muted-foreground">Manage and track support tickets</p>
-        </div>
-        <Button onClick={() => navigate('/tickets/create')}>
-          Create Ticket
-        </Button>
-      </div>
-
-      {selectedTickets.length > 0 && (
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <div>
-                <CardTitle>Bulk Actions</CardTitle>
-                <CardDescription>
-                  {selectedTickets.length} ticket{selectedTickets.length === 1 ? '' : 's'} selected
-                </CardDescription>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => handleBulkAction('close')}
-                >
-                  Close Selected
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm"
+    <div className="container mx-auto py-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Tickets</h1>
+        <div className="flex items-center gap-4">
+          {selectedTickets.length > 0 && (
+            <>
+              <Button
+                variant="outline"
+                onClick={() => handleBulkAction('status')}
+              >
+                Update Status
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => handleBulkAction('priority')}
+              >
+                Update Priority
+              </Button>
+              {(profile?.role === 'admin' || profile?.role === 'team_lead') && (
+                <Button
+                  variant="outline"
                   onClick={() => handleBulkAction('assign')}
                 >
-                  Assign Selected
+                  Assign Team
                 </Button>
-                <Button 
-                  variant="destructive" 
-                  size="sm"
-                  onClick={() => handleBulkAction('delete')}
-                >
-                  Delete Selected
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-        </Card>
-      )}
+              )}
+              <Button
+                variant="destructive"
+                onClick={() => handleBulkAction('delete')}
+                disabled={isDeleting}
+              >
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </Button>
+            </>
+          )}
+          <Button onClick={() => navigate('/tickets/new')}>
+            Create Ticket
+          </Button>
+        </div>
+      </div>
 
-      <TicketList 
+      <TicketList
         selectedTickets={selectedTickets}
         onSelectTicket={handleSelectTicket}
         onSelectAll={handleSelectAll}
+        isAdminView
+      />
+
+      <BulkStatusDialog
+        isOpen={showStatusDialog}
+        onClose={() => setShowStatusDialog(false)}
+        ticketIds={selectedTickets}
+        onUpdate={handleBulkUpdate}
+      />
+
+      <BulkPriorityDialog
+        isOpen={showPriorityDialog}
+        onClose={() => setShowPriorityDialog(false)}
+        ticketIds={selectedTickets}
+        onUpdate={handleBulkUpdate}
+      />
+
+      <BulkAssignmentDialog
+        isOpen={showAssignmentDialog}
+        onClose={() => setShowAssignmentDialog(false)}
+        ticketIds={selectedTickets}
+        onUpdate={handleBulkUpdate}
       />
     </div>
   )

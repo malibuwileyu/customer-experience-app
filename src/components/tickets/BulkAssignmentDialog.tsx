@@ -9,12 +9,12 @@ interface BulkAssignmentDialogProps {
   isOpen: boolean
   onClose: () => void
   ticketIds: string[]
-  onAssign: () => void
+  onUpdate: () => void
 }
 
-export function BulkAssignmentDialog({ isOpen, onClose, ticketIds, onAssign }: BulkAssignmentDialogProps) {
+export function BulkAssignmentDialog({ isOpen, onClose, ticketIds, onUpdate }: BulkAssignmentDialogProps) {
   const [isLoading, setIsLoading] = useState(false)
-  const [selectedTeamId, setSelectedTeamId] = useState<string>('')
+  const [selectedTeamId, setSelectedTeamId] = useState<string | null>('')
 
   const handleAssign = async () => {
     if (!selectedTeamId) {
@@ -27,8 +27,8 @@ export function BulkAssignmentDialog({ isOpen, onClose, ticketIds, onAssign }: B
       await Promise.all(
         ticketIds.map(id => ticketService.assignTeam(id, selectedTeamId))
       )
-      toast.success('Tickets assigned successfully')
-      onAssign()
+      toast.success(`Successfully assigned ${ticketIds.length} ticket${ticketIds.length === 1 ? '' : 's'}`)
+      onUpdate()
       onClose()
     } catch (error) {
       console.error('Failed to assign tickets:', error)

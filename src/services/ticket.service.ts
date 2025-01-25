@@ -257,6 +257,21 @@ export const ticketService = {
     const {
       data: { user },
     } = await supabase.auth.getUser()
+    if (!user) throw new Error('Not authenticated')
+
+    // Get user's role from profiles
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (!profile) throw new Error('User profile not found')
+    
+    // Only allow agents, admins, and team members to update status
+    if (profile.role === 'customer') {
+      throw new Error('Customers cannot change ticket status')
+    }
 
     const { data: ticket, error } = await supabase.rpc('update_ticket_status', {
       p_ticket_id: ticketId,
@@ -303,10 +318,49 @@ export const ticketService = {
   },
 
   async deleteTicket(id: string): Promise<void> {
-    const { error } = await supabase
+    // Get user's role from profiles
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Not authenticated')
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (!profile || profile.role !== 'admin') {
+      throw new Error('Only admins can delete tickets')
+    }
+
+    // Use serviceClient to bypass RLS since we've verified admin status
+    const { error } = await serviceClient
       .from('tickets')
       .delete()
       .eq('id', id)
+
+    if (error) throw error
+  },
+
+  async bulkDeleteTickets(ids: string[]): Promise<void> {
+    // Get user's role from profiles
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Not authenticated')
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (!profile || profile.role !== 'admin') {
+      throw new Error('Only admins can delete tickets')
+    }
+
+    // Use serviceClient to bypass RLS since we've verified admin status
+    const { error } = await serviceClient
+      .from('tickets')
+      .delete()
+      .in('id', ids)
 
     if (error) throw error
   },
@@ -377,6 +431,7 @@ export const ticketService = {
    * @throws {Error} If assignment fails or user lacks permission
    */
   async assignTeam(ticketId: string, teamId: string | null): Promise<Ticket> {
+    //const user = supabase.auth.getUser()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error("Not authenticated")
 
@@ -433,7 +488,65 @@ export const ticketService = {
     if (error) throw error
     if (!data) throw new Error("Ticket not found")
     return data
-  }
+  },
+
+  async bulkUpdateStatus(ids: string[], status: Ticket['status']): Promise<void> {
+    // Get user's role from profiles
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Not authenticated')
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (!profile) throw new Error('User profile not found')
+    
+    // Only allow agents, admins, and team members to update status
+    if (profile.role === 'customer') {
+      throw new Error('Customers cannot change ticket status')
+    }
+
+    // Use Promise.all to update all tickets and record status history
+    await Promise.all(
+      ids.map(async (id) => {
+        const { error } = await supabase.rpc('update_ticket_status', {
+          p_ticket_id: id,
+          p_new_status: status,
+          p_changed_by: user.id
+        })
+        if (error) throw error
+      })
+    )
+  },
+
+  async bulkUpdatePriority(ids: string[], priority: Ticket['priority']): Promise<void> {
+    // Get user's role from profiles
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Not authenticated')
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (!profile) throw new Error('User profile not found')
+    
+    // Only allow agents and admins to update priority
+    if (!['agent', 'admin'].includes(profile.role)) {
+      throw new Error('Only agents and admins can change ticket priority')
+    }
+
+    // Use serviceClient to update all tickets at once
+    const { error } = await serviceClient
+      .from('tickets')
+      .update({ priority, updated_at: new Date().toISOString() })
+      .in('id', ids)
+
+    if (error) throw error
+  },
 }
 
 export default ticketService 

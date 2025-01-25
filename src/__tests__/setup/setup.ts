@@ -10,7 +10,7 @@ import '@testing-library/jest-dom'
 import { expect, afterEach, afterAll, vi } from 'vitest'
 import { cleanup } from '@testing-library/react'
 import * as matchers from '@testing-library/jest-dom/matchers'
-import { cleanupTestUsers } from '../__tests__/setup/test-users'
+import { cleanupTestUsers } from './test-users'
 
 expect.extend(matchers)
 

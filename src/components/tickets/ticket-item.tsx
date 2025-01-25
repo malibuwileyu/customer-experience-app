@@ -1,3 +1,12 @@
+/**
+ * @fileoverview Individual ticket display component with selection and action capabilities
+ * @module components/tickets/ticket-item
+ * @description
+ * A card-based display component for individual tickets that shows key details including
+ * title, description, status, priority, and assignment information. Supports selection
+ * for bulk operations and navigation to ticket details or edit views.
+ */
+
 'use client'
 
 import { formatDistanceToNow } from 'date-fns'
@@ -9,12 +18,36 @@ import { Checkbox } from '../common/checkbox'
 import type { Ticket } from '../../types/models/ticket.types'
 import { useNavigate } from 'react-router-dom'
 
+/**
+ * Props for the TicketItem component
+ * @interface TicketItemProps
+ * @property {Ticket} ticket - The ticket object to display
+ * @property {boolean} [selected] - Whether the ticket is selected for bulk operations
+ * @property {function} [onSelect] - Callback when ticket selection changes
+ */
 interface TicketItemProps {
   ticket: Ticket
   selected?: boolean
   onSelect?: (ticketId: string) => void
 }
 
+/**
+ * TicketItem component for displaying individual ticket information
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * // Basic usage
+ * <TicketItem ticket={ticket} />
+ * 
+ * // With selection
+ * <TicketItem
+ *   ticket={ticket}
+ *   selected={isSelected}
+ *   onSelect={handleSelect}
+ * />
+ * ```
+ */
 export function TicketItem({ ticket, selected = false, onSelect }: TicketItemProps) {
   const navigate = useNavigate()
   

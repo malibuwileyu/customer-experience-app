@@ -1,14 +1,45 @@
+/**
+ * @fileoverview Comment list component for displaying ticket comments
+ * @module components/tickets/comment-list
+ * @description
+ * Displays a list of comments for a ticket, including user information,
+ * timestamps, and internal note indicators. Supports loading states and
+ * empty state handling.
+ */
+
 import { formatDistanceToNow } from "date-fns"
 import { Avatar, AvatarFallback, AvatarImage } from "../common/avatar"
 import { Badge } from "../common/badge"
 import { Skeleton } from "../common/skeleton"
 import type { TicketComment } from "../../types/models/ticket.types"
 
+/**
+ * Props for the CommentList component
+ * @interface CommentListProps
+ * @property {TicketComment[]} comments - Array of comments to display
+ * @property {boolean} [isLoading] - Whether the comments are currently loading
+ */
 interface CommentListProps {
   comments: TicketComment[]
   isLoading?: boolean
 }
 
+/**
+ * CommentList component for displaying ticket comments
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * // Basic usage
+ * <CommentList comments={comments} />
+ * 
+ * // With loading state
+ * <CommentList
+ *   comments={[]}
+ *   isLoading={true}
+ * />
+ * ```
+ */
 export function CommentList({ comments, isLoading = false }: CommentListProps) {
   if (isLoading) {
     return (

@@ -1,3 +1,12 @@
+/**
+ * @fileoverview Comment form component for adding comments to tickets
+ * @module components/tickets/comment-form
+ * @description
+ * A form component that allows users to add comments to tickets, with support
+ * for internal notes and loading states. Uses React Hook Form for form handling
+ * and validation.
+ */
+
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -13,6 +22,9 @@ import { Textarea } from "../common/textarea"
 import { Checkbox } from "../common/checkbox"
 import type { CreateTicketCommentDTO } from "../../types/models/ticket.types"
 
+/**
+ * Schema for comment form validation
+ */
 const commentSchema = z.object({
   content: z.string().min(1, "Comment cannot be empty"),
   is_internal: z.boolean().default(false),
@@ -20,12 +32,32 @@ const commentSchema = z.object({
 
 type CommentFormValues = z.infer<typeof commentSchema>
 
+/**
+ * Props for the CommentForm component
+ * @interface CommentFormProps
+ * @property {string} ticketId - ID of the ticket to add comment to
+ * @property {function} onSubmit - Callback when comment is submitted
+ * @property {boolean} [isSubmitting] - Whether the form is currently submitting
+ */
 interface CommentFormProps {
   ticketId: string
   onSubmit: (data: CreateTicketCommentDTO) => Promise<void>
   isSubmitting?: boolean
 }
 
+/**
+ * CommentForm component for adding comments to tickets
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * <CommentForm
+ *   ticketId="123"
+ *   onSubmit={handleSubmit}
+ *   isSubmitting={isLoading}
+ * />
+ * ```
+ */
 export function CommentForm({ ticketId, onSubmit, isSubmitting = false }: CommentFormProps) {
   const form = useForm<CommentFormValues>({
     resolver: zodResolver(commentSchema),

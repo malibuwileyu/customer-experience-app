@@ -1,3 +1,12 @@
+/**
+ * @fileoverview Create ticket form component with file upload support
+ * @module components/tickets/create-ticket-form
+ * @description
+ * A comprehensive form component for creating new tickets. Includes fields for
+ * title, description, priority, category, team assignment, and file attachments.
+ * Supports validation, file uploads, and role-based field access.
+ */
+
 'use client'
 
 import { useForm } from 'react-hook-form'
@@ -21,10 +30,18 @@ import { useUserRoles } from '../../hooks/auth/useUserRoles'
 import { toast } from 'sonner'
 import { useNavigate } from 'react-router-dom'
 
+/**
+ * Props for the CreateTicketForm component
+ * @interface CreateTicketFormProps
+ * @property {function} [onClose] - Optional callback when form is closed
+ */
 interface CreateTicketFormProps {
   onClose?: () => void
 }
 
+/**
+ * Schema for ticket form validation
+ */
 const ticketFormSchema = z.object({
   title: z.string()
     .min(3, 'Title must be at least 3 characters')
@@ -50,6 +67,19 @@ const defaultValues: Partial<TicketFormData> = {
   internal_notes: '',
 }
 
+/**
+ * CreateTicketForm component for creating new tickets
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * // Basic usage
+ * <CreateTicketForm />
+ * 
+ * // With close handler
+ * <CreateTicketForm onClose={handleClose} />
+ * ```
+ */
 export function CreateTicketForm({ onClose }: CreateTicketFormProps) {
   const navigate = useNavigate()
   const form = useForm<TicketFormData>({

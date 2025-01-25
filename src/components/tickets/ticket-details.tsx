@@ -1,3 +1,12 @@
+/**
+ * @fileoverview Detailed ticket view component with status management and comments
+ * @module components/tickets/ticket-details
+ * @description
+ * A comprehensive view of a ticket that displays all ticket information, allows status
+ * updates, team assignment, and comment management. Supports both admin/team lead
+ * and regular user views with appropriate permissions.
+ */
+
 import { useQuery, useQueryClient, type UseQueryResult } from "@tanstack/react-query"
 import { ticketService } from "../../services/ticket.service"
 import { Skeleton } from "../common/skeleton"
@@ -22,6 +31,15 @@ import { toast } from 'sonner'
 import { TeamSelector } from '../teams/TeamSelector'
 import { useAuth } from '../../hooks/auth/use-auth'
 
+/**
+ * Props for the TicketDetails component
+ * @interface TicketDetailsProps
+ * @property {Ticket} [ticket] - Optional initial ticket data
+ * @property {string} [ticketId] - ID of the ticket to fetch if not provided directly
+ * @property {function} [onStatusChange] - Callback when ticket status changes
+ * @property {boolean} [isUpdating] - Whether the ticket is currently being updated
+ * @property {boolean} [isUserTicket] - Whether this is a user's own ticket
+ */
 interface TicketDetailsProps {
   ticket?: Ticket;
   ticketId?: string;
@@ -77,6 +95,25 @@ function normalizeAttachment(attachment: unknown): NormalizedAttachment | null {
   return null;
 }
 
+/**
+ * TicketDetails component for displaying comprehensive ticket information
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * // With initial ticket data
+ * <TicketDetails 
+ *   ticket={ticketData}
+ *   onStatusChange={handleStatusChange}
+ * />
+ * 
+ * // With ticket ID for fetching
+ * <TicketDetails
+ *   ticketId="123"
+ *   onStatusChange={handleStatusChange}
+ * />
+ * ```
+ */
 export function TicketDetails({ ticket: initialTicket, ticketId, onStatusChange, isUpdating = false }: TicketDetailsProps) {
   const [ticket, setTicket] = useState<Ticket | undefined>(initialTicket)
   const queryClient = useQueryClient()
@@ -130,8 +167,8 @@ export function TicketDetails({ ticket: initialTicket, ticketId, onStatusChange,
     }
   }
 
-  const handleTeamAssign = async (teamId: string) => {
-    if (!ticket) return
+  const handleTeamAssign = async (teamId: string | null) => {
+    if (!ticket || !teamId) return
 
     try {
       const updatedTicket = await ticketService.assignTeam(ticket.id, teamId)

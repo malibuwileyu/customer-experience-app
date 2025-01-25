@@ -1,8 +1,17 @@
+/**
+ * @fileoverview Ticket list component for displaying and managing tickets with filtering and bulk selection capabilities
+ * @module components/tickets/ticket-list
+ * @description
+ * A core component that displays a list of tickets with filtering, search, and bulk selection capabilities.
+ * Supports both admin and regular user views, with real-time updates through Supabase subscriptions.
+ */
+
 'use client'
 
 import { useState } from 'react'
 import { useTickets } from '../../hooks/tickets/use-tickets'
 import { useAllTickets } from '../../hooks/tickets/use-all-tickets'
+import { useTicketSubscription } from '../../hooks/tickets/use-ticket-subscription'
 import type { TicketFilters, TicketStatus, TicketPriority } from '../../types/models/ticket.types'
 import { Card } from '../common/card'
 import { Input } from '../common/input'
@@ -13,6 +22,14 @@ import { Alert, AlertDescription } from '../common/alert'
 import { TicketItem } from './ticket-item'
 import { Checkbox } from '../common/checkbox'
 
+/**
+ * Props for the TicketList component
+ * @interface TicketListProps
+ * @property {string[]} [selectedTickets] - Array of selected ticket IDs
+ * @property {function} [onSelectTicket] - Callback when a ticket is selected
+ * @property {function} [onSelectAll] - Callback when all tickets are selected/deselected
+ * @property {boolean} [isAdminView] - Toggle between admin and regular user view
+ */
 interface TicketListProps {
   selectedTickets?: string[]
   onSelectTicket?: (ticketId: string) => void
@@ -20,26 +37,34 @@ interface TicketListProps {
   isAdminView?: boolean
 }
 
+/**
+ * TicketList component for displaying and managing tickets
+ * 
+ * @component
+ * @example
+ * ```tsx
+ * // Basic usage
+ * <TicketList />
+ * 
+ * // With bulk selection
+ * <TicketList
+ *   selectedTickets={selectedTickets}
+ *   onSelectTicket={handleSelectTicket}
+ *   onSelectAll={handleSelectAll}
+ * />
+ * 
+ * // Admin view
+ * <TicketList isAdminView={true} />
+ * ```
+ */
 export function TicketList({ selectedTickets = [], onSelectTicket, onSelectAll, isAdminView = false }: TicketListProps) {
+  // Subscribe to ticket changes
+  useTicketSubscription()
+
   const [filters, setFilters] = useState<TicketFilters>({})
-
-  // Use different hooks based on view type
-  const {
-    tickets: filteredTickets,
-    isLoading: isFilteredLoading,
-    error: filteredError
-  } = useTickets({ filters })
-
-  const {
-    tickets: allTickets,
-    isLoading: isAllLoading,
-    error: allError
-  } = useAllTickets()
-
-  // Use the appropriate data based on view type
-  const tickets = isAdminView ? allTickets : filteredTickets
-  const isLoading = isAdminView ? isAllLoading : isFilteredLoading
-  const error = isAdminView ? allError : filteredError
+  const { tickets, isLoading, error } = isAdminView
+    ? useAllTickets()
+    : useTickets({ filters })
 
   const handleSelectAll = () => {
     if (!tickets?.length || !onSelectAll) return
