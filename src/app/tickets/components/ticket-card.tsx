@@ -5,7 +5,7 @@ import { Badge } from "@/components/common/badge"
 import { Card, CardHeader, CardContent, CardFooter } from "@/components/common/card"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/common/avatar"
 import { Ticket } from "../../../types/models/ticket.types"
-import { ChevronRight } from "lucide-react"
+import { ChevronRight, Users } from "lucide-react"
 
 interface TicketCardProps {
   ticket: Ticket
@@ -66,6 +66,12 @@ export function TicketCard({ ticket, onClick }: TicketCardProps) {
           </Badge>
           {ticket.category && (
             <Badge variant="outline">{ticket.category.name}</Badge>
+          )}
+          {ticket.team && (
+            <Badge variant="secondary" className="flex items-center gap-1">
+              <Users className="h-3 w-3" />
+              {ticket.team.name}
+            </Badge>
           )}
         </div>
       </CardContent>

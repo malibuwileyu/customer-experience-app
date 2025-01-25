@@ -3,7 +3,7 @@
  * @module services/ticket
  */
 
-import { supabase } from "../lib/supabase"
+import { supabase, serviceClient } from "../lib/supabase"
 import type { 
   CreateTicketDTO,
   UpdateTicketDTO,
@@ -51,15 +51,20 @@ export const ticketService = {
   async getTicket(id: string): Promise<Ticket> {
     console.log('Fetching ticket with ID:', id);
     
-    const { data, error } = await supabase
+    // Use serviceClient to bypass RLS and properly handle single row
+    const { data, error } = await serviceClient
       .from('tickets')
       .select('*')
       .eq('id', id)
-      .single()
+      .maybeSingle()
 
     if (error) {
       console.error('Error fetching ticket:', error)
       throw error
+    }
+
+    if (!data) {
+      throw new Error('Ticket not found')
     }
 
     console.log('Raw ticket data:', data);
@@ -78,16 +83,11 @@ export const ticketService = {
   async getAllTickets(): Promise<PaginatedResponse<Ticket>> {
     console.log('getAllTickets: Fetching all tickets without filtering')
     
-    // Get all tickets without any filtering, using service role to bypass RLS
-    const { data: { user } } = await supabase.auth.getUser()
-    console.log('getAllTickets: Current user:', user)
-
-    // Use service role client to bypass RLS
-    const { data, error, count } = await supabase
+    // Use serviceClient to bypass RLS
+    const { data, error, count } = await serviceClient
       .from('tickets')
       .select('*', { count: 'exact' })
       .order('created_at', { ascending: false })
-
 
     if (error) {
       console.error('Error fetching all tickets:', error)
@@ -105,10 +105,24 @@ export const ticketService = {
   async getTickets(filters?: TicketFilters): Promise<PaginatedResponse<Ticket>> {
     console.log('Fetching tickets with filters:', filters);
     
-    // Check if user is admin/agent
+    // Get user and their profile
     const { data: { user } } = await supabase.auth.getUser()
-    const isAdminOrAgent = user?.user_metadata?.role === 'admin' || user?.user_metadata?.role === 'agent'
-    console.log('Role check in getTickets:', { user, isAdminOrAgent })
+    if (!user) throw new Error('Not authenticated')
+
+    // Get user's role from profiles
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+
+    if (profileError) {
+      console.error('Error fetching user profile:', profileError)
+      throw profileError
+    }
+
+    const isAdminOrAgent = profile?.role === 'admin' || profile?.role === 'agent'
+    console.log('Role check in getTickets:', { user, profile, isAdminOrAgent })
     
     // If admin/agent, return all tickets without filtering
     if (isAdminOrAgent) {
@@ -350,6 +364,74 @@ export const ticketService = {
     }
 
     console.log('Successfully fetched ticket:', data)
+    return data
+  },
+
+  /**
+   * Assign a team to a ticket
+   * 
+   * @async
+   * @param {string} ticketId - Ticket ID
+   * @param {string} teamId - Team ID
+   * @returns {Promise<Ticket>} Updated ticket
+   * @throws {Error} If assignment fails or user lacks permission
+   */
+  async assignTeam(ticketId: string, teamId: string | null): Promise<Ticket> {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error("Not authenticated")
+
+    // If teamId is null, we're removing the team assignment
+    if (teamId === null) {
+      const { data, error } = await serviceClient
+        .from("tickets")
+        .update({ team_id: null })
+        .eq("id", ticketId)
+        .select()
+        .maybeSingle()
+
+      if (error) throw error
+      if (!data) throw new Error("Ticket not found")
+      return data
+    }
+
+    // Get the team details
+    const { data: team, error: teamError } = await serviceClient
+      .from("teams")
+      .select()
+      .eq("id", teamId)
+      .maybeSingle()
+
+    if (teamError) throw new Error("Team not found")
+    if (!team) throw new Error("Team not found")
+
+    // Get user's role from profiles
+    const { data: profile, error: profileError } = await serviceClient
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle()
+
+    if (profileError) throw new Error("Failed to get user role")
+    if (!profile) throw new Error("User profile not found")
+
+    // Check if user has permission (admin or team lead of the team)
+    const isAdmin = profile.role === 'admin'
+    const isTeamLead = team.lead_id === user.id
+
+    if (!isAdmin && !isTeamLead) {
+      throw new Error("You don't have permission to assign this team")
+    }
+
+    // Update the ticket with the new team
+    const { data, error } = await serviceClient
+      .from("tickets")
+      .update({ team_id: teamId })
+      .eq("id", ticketId)
+      .select()
+      .maybeSingle()
+
+    if (error) throw error
+    if (!data) throw new Error("Ticket not found")
     return data
   }
 }

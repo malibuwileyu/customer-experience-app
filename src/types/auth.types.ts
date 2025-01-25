@@ -22,8 +22,8 @@ export type UserRole = 'admin' | 'agent' | 'team_lead' | 'customer';
  * 
  * @interface Profile
  * @property {string} id - Primary key
- * @property {string} email - Foreign key to auth.users
- * @property {string | null} full_name - User's full name
+ * @property {string} email - User's email address
+ * @property {string} full_name - User's full name
  * @property {UserRole} role - User's role in the system
  * @property {string | null} avatar_url - URL to user's avatar image
  * @property {Record<string, unknown>} preferences - User preferences
@@ -35,8 +35,14 @@ export type UserRole = 'admin' | 'agent' | 'team_lead' | 'customer';
 export interface Profile {
   id: string;
   email: string;
-  full_name?: string;
-  avatar_url?: string;
+  full_name: string;
+  role: UserRole;
+  avatar_url?: string | null;
+  preferences?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+  created_at?: string;
+  updated_at?: string;
+  last_seen_at?: string | null;
 }
 
 /**

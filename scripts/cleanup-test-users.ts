@@ -40,13 +40,7 @@ async function cleanupTestUsers() {
     // Clean up each test user
     for (const user of testUsers) {
       try {
-        // Delete user roles first
-        await supabase
-          .from('user_roles')
-          .delete()
-          .eq('user_id', user.id);
-
-        // Delete user profile
+        // Delete user profile (includes role information)
         await supabase
           .from('profiles')
           .delete()

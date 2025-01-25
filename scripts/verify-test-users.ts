@@ -29,16 +29,6 @@ async function verifyTestUsers() {
       return;
     }
 
-    // Get all roles from user_roles table
-    const { data: userRoles, error: rolesError } = await supabase
-      .from('user_roles')
-      .select('*');
-
-    if (rolesError) {
-      console.error('Failed to list user roles:', rolesError.message);
-      return;
-    }
-
     // Get all profiles
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
@@ -58,36 +48,31 @@ async function verifyTestUsers() {
       user.email?.toLowerCase().includes('testuser')
     );
 
-    // Map roles and profiles to users
+    // Map profiles to users
     testUsers.forEach(user => {
-      const userRole = userRoles?.find(r => r.user_id === user.id);
       const profile = profiles?.find(p => p.id === user.id);
 
       console.log(`
 Email: ${user.email}
 ID: ${user.id}
-User Role (user_roles): ${userRole?.role || 'No role assigned'}
-Profile Role (profiles): ${profile?.role || 'No profile found'}
+Profile Role: ${profile?.role || 'No profile found'}
 Created: ${new Date(user.created_at).toLocaleString()}
 Last Sign In: ${user.last_sign_in_at ? new Date(user.last_sign_in_at).toLocaleString() : 'Never'}
-Role Match: ${userRole?.role === profile?.role ? '✅' : '❌'}
+Profile Status: ${profile ? '✅' : '❌'}
       `);
     });
 
-    // Check for any mismatches
-    const mismatches = testUsers.filter(user => {
-      const userRole = userRoles?.find(r => r.user_id === user.id);
+    // Check for missing profiles
+    const missingProfiles = testUsers.filter(user => {
       const profile = profiles?.find(p => p.id === user.id);
-      return userRole?.role !== profile?.role;
+      return !profile;
     });
 
-    if (mismatches.length > 0) {
-      console.log('\n⚠️  Role Mismatches Found:');
+    if (missingProfiles.length > 0) {
+      console.log('\n⚠️  Missing Profiles Found:');
       console.log('=======================');
-      mismatches.forEach(user => {
-        const userRole = userRoles?.find(r => r.user_id === user.id);
-        const profile = profiles?.find(p => p.id === user.id);
-        console.log(`${user.email}: user_roles=${userRole?.role}, profiles=${profile?.role}`);
+      missingProfiles.forEach(user => {
+        console.log(`${user.email}: No profile found`);
       });
     }
   } catch (error) {

@@ -177,22 +177,24 @@ describe('Role Management Service', () => {
         performedBy: 'admin-id'
       }
 
-      // Mock getting current role
+      // Mock getting current role from profiles
       vi.mocked(serviceClient.from).mockReturnValueOnce({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
             maybeSingle: vi.fn().mockResolvedValue({
-              data: null,
+              data: { role: 'customer' },
               error: null
             })
           })
         })
       } as any)
 
-      // Mock upserting new role
+      // Mock updating profile role
       vi.mocked(serviceClient.from).mockReturnValueOnce({
-        upsert: vi.fn().mockResolvedValue({
-          error: null
+        update: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({
+            error: null
+          })
         })
       } as any)
 
@@ -214,22 +216,24 @@ describe('Role Management Service', () => {
         performedBy: 'admin-id'
       }
 
-      // Mock getting current role
+      // Mock getting current role from profiles
       vi.mocked(serviceClient.from).mockReturnValueOnce({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
             maybeSingle: vi.fn().mockResolvedValue({
-              data: null,
+              data: { role: 'customer' },
               error: null
             })
           })
         })
       } as any)
 
-      // Mock upserting new role with error
+      // Mock updating profile role with error
       vi.mocked(serviceClient.from).mockReturnValueOnce({
-        upsert: vi.fn().mockResolvedValue({
-          error: { message: 'Failed to assign role' }
+        update: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({
+            error: { message: 'Failed to assign role' }
+          })
         })
       } as any)
 

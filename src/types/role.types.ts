@@ -39,7 +39,7 @@ export interface Permission {
  * @property {'create' | 'update' | 'delete'} action - Type of role change action
  * @property {UserRole | null} old_role - Previous role (null for new users)
  * @property {UserRole | null} new_role - New role (null for deleted users)
- * @property {string} performed_by - ID of the user who performed the change
+ * @property {string} changed_by - ID of the user who performed the change
  * @property {{ email: string }} [performed_by_user] - Email of the user who performed the change
  * @property {string} created_at - ISO timestamp of when the change occurred
  */
@@ -49,7 +49,7 @@ export interface RoleAuditLog {
   action: 'create' | 'update' | 'delete'
   old_role: UserRole | null
   new_role: UserRole | null
-  performed_by: string
+  changed_by: string
   performed_by_user?: {
     email: string
   }

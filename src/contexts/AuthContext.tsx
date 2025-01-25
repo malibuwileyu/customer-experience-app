@@ -29,7 +29,7 @@ export type AuthContextType = {
     data: { user: User | null; session: Session | null }
     error: AuthError | null
   }>
-  signUp: (credentials: { email: string; password: string }) => Promise<{
+  signUp: (credentials: { email: string; password: string; metadata?: { full_name?: string; role?: string } }) => Promise<{
     data: { user: User | null } | null
     error: AuthError | null
   }>
@@ -144,19 +144,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * Registers a new user with email and password
    * 
    * @async
-   * @param {{ email: string; password: string }} credentials - Registration credentials
+   * @param {{ email: string; password: string; metadata?: { full_name?: string; role?: string } }} credentials - Registration credentials
    * @returns {Promise<{ data: { user: User | null } | null; error: AuthError | null }>}
    *   Registration result with user data or error
    */
-  const signUp = async (credentials: { email: string; password: string }) => {
+  const signUp = async (credentials: { 
+    email: string; 
+    password: string; 
+    metadata?: { 
+      full_name?: string; 
+      role?: string;
+    }
+  }) => {
     try {
       const { data, error } = await supabase.auth.signUp({
         email: credentials.email,
         password: credentials.password,
         options: {
           data: {
-            full_name: credentials.email.split('@')[0], // Default to email username
-            role: 'customer' // Default role
+            full_name: credentials.metadata?.full_name || credentials.email.split('@')[0],
+            role: credentials.metadata?.role || 'customer'
           }
         }
       });

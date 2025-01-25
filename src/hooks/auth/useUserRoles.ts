@@ -2,13 +2,13 @@
  * @fileoverview User roles hook for role-based access control
  * @module hooks/auth/useUserRoles
  * @description
- * A custom hook that fetches and manages user roles from Supabase.
+ * A custom hook that fetches and manages user roles from the profiles table.
  * Provides role information with loading and error states using React Query
  * for efficient caching and data synchronization.
  */
 
 import { useQuery } from '@tanstack/react-query';
-import { serviceClient } from '../../services/role-management.service';
+import { supabase } from '../../lib/supabase';
 
 /**
  * Interface for the useUserRoles hook result
@@ -66,10 +66,11 @@ export function useUserRoles(userId?: string): UseUserRolesResult {
       console.log('Fetching roles for user:', userId);
       if (!userId) return [];
 
-      const { data, error } = await serviceClient
-        .from('user_roles')
+      const { data, error } = await supabase
+        .from('profiles')
         .select('role')
-        .eq('user_id', userId);
+        .eq('id', userId)
+        .maybeSingle();
 
       console.log('Role fetch result:', { data, error });
 
@@ -78,7 +79,8 @@ export function useUserRoles(userId?: string): UseUserRolesResult {
         throw error;
       }
 
-      const mappedRoles = (data || []).map((r: { role: string }) => r.role);
+      // Since role is now a single value in profiles, wrap it in an array
+      const mappedRoles = data?.role ? [data.role] : [];
       console.log('Mapped roles:', mappedRoles);
       return mappedRoles;
     },

@@ -65,26 +65,84 @@ const pointerCaptureMock = {
 
 // Mock MessageEvent
 class MessageEventMock extends Event {
-  data: any
-  origin: string
-  lastEventId: string
-  source: MessageEventSource | null
-  ports: ReadonlyArray<MessagePort>
+  data: any = null;
+  origin: string = '';
+  lastEventId: string = '';
+  source: MessageEventSource | null = null;
+  ports: ReadonlyArray<MessagePort> = [];
 
   constructor(type: string, init?: MessageEventInit) {
-    super(type, init)
-    this.data = init?.data ?? null
-    this.origin = init?.origin ?? ''
-    this.lastEventId = init?.lastEventId ?? ''
-    this.source = init?.source ?? null
-    this.ports = init?.ports ?? []
+    super(type, { ...init, bubbles: init?.bubbles ?? false, cancelable: init?.cancelable ?? false })
+    
+    // Get property descriptors from Event.prototype
+    const eventProto = Object.getPrototypeOf(new Event(type))
+    const propertyDescriptors = Object.getOwnPropertyDescriptors(eventProto)
+
+    // Define properties with proper descriptors
+    Object.defineProperties(this, {
+      ...propertyDescriptors,
+      data: { value: init?.data ?? null, configurable: true },
+      origin: { value: init?.origin ?? '', configurable: true },
+      lastEventId: { value: init?.lastEventId ?? '', configurable: true },
+      source: { value: init?.source ?? null, configurable: true },
+      ports: { value: init?.ports ?? [], configurable: true }
+    })
+
+    // Ensure instanceof checks work correctly
+    Object.setPrototypeOf(this, MessageEventMock.prototype)
   }
 }
 
-// Mock Event constructors
+// Mock MessageEvent globally
 Object.defineProperty(window, 'MessageEvent', {
-  value: MessageEventMock
-})
+  value: MessageEventMock,
+  writable: true,
+  configurable: true
+});
+
+// Mock BroadcastChannel
+class BroadcastChannelMock extends EventTarget {
+  private name: string;
+  private static channels: Map<string, BroadcastChannelMock[]> = new Map();
+
+  constructor(name: string) {
+    super();
+    this.name = name;
+    const channels = BroadcastChannelMock.channels.get(name) || [];
+    channels.push(this);
+    BroadcastChannelMock.channels.set(name, channels);
+  }
+
+  postMessage(message: any) {
+    const channels = BroadcastChannelMock.channels.get(this.name) || [];
+    const messageEvent = new MessageEventMock('message', {
+      data: message,
+      origin: window.location.origin,
+      lastEventId: '',
+      source: null,
+      ports: []
+    });
+    channels.forEach(channel => {
+      if (channel !== this) {
+        channel.dispatchEvent(messageEvent);
+      }
+    });
+  }
+
+  close() {
+    const channels = BroadcastChannelMock.channels.get(this.name) || [];
+    const index = channels.indexOf(this);
+    if (index > -1) {
+      channels.splice(index, 1);
+    }
+    if (channels.length === 0) {
+      BroadcastChannelMock.channels.delete(this.name);
+    }
+  }
+}
+
+// Mock BroadcastChannel globally
+global.BroadcastChannel = BroadcastChannelMock as any;
 
 // Mock user-event specific events
 Object.defineProperty(window, 'PointerEvent', {
@@ -157,48 +215,4 @@ Object.defineProperties(window.HTMLElement.prototype, {
   hasPointerCapture: { value: pointerCaptureMock.hasPointerCapture },
   setPointerCapture: { value: pointerCaptureMock.setPointerCapture },
   releasePointerCapture: { value: pointerCaptureMock.releasePointerCapture },
-})
-
-// Mock BroadcastChannel
-class BroadcastChannelMock extends EventTarget {
-  private name: string;
-  private static channels: Map<string, BroadcastChannelMock[]> = new Map();
-
-  constructor(name: string) {
-    super();
-    this.name = name;
-    const channels = BroadcastChannelMock.channels.get(name) || [];
-    channels.push(this);
-    BroadcastChannelMock.channels.set(name, channels);
-  }
-
-  postMessage(message: any) {
-    const channels = BroadcastChannelMock.channels.get(this.name) || [];
-    const event = new MessageEvent('message', {
-      data: message,
-      origin: window.location.origin,
-      lastEventId: '',
-      source: null,
-      ports: []
-    });
-    channels.forEach(channel => {
-      if (channel !== this) {
-        channel.dispatchEvent(event);
-      }
-    });
-  }
-
-  close() {
-    const channels = BroadcastChannelMock.channels.get(this.name) || [];
-    const index = channels.indexOf(this);
-    if (index > -1) {
-      channels.splice(index, 1);
-    }
-    if (channels.length === 0) {
-      BroadcastChannelMock.channels.delete(this.name);
-    }
-  }
-}
-
-// Mock BroadcastChannel globally
-global.BroadcastChannel = BroadcastChannelMock as any; 
+}) 

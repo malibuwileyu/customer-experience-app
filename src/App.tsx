@@ -14,7 +14,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { MainLayout } from './components/layout/MainLayout';
 import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { TicketsPage } from './pages/tickets/TicketsPage';
-import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
+import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import { RoleManagementPage } from './pages/admin/RoleManagementPage';
 import { LoginPage } from './pages/auth/LoginPage';
 import { RegistrationPage } from './pages/auth/RegistrationPage';
@@ -28,6 +28,10 @@ import { useUserRoles } from './hooks/auth/useUserRoles';
 import { TicketDetails } from './pages/tickets/TicketDetails';
 import UserTicketsPage from './pages/user-tickets/UserTicketsPage'
 import { UserTicketDetails } from './pages/user-tickets/[id]'
+import { TeamList } from './components/teams/TeamList'
+import { CreateTeamPage } from './pages/teams/CreateTeamPage'
+import TeamsPage from './pages/teams/TeamsPage'
+import { TeamDetailsPage } from './pages/teams/TeamDetailsPage'
 
 // Create a client
 const queryClient = new QueryClient();
@@ -135,6 +139,9 @@ export function App() {
               <Route path="tickets" element={<ProtectedRoute requiredRoles={['admin', 'agent']}><TicketsPage /></ProtectedRoute>} />
               <Route path="tickets/:id" element={<ProtectedRoute requiredRoles={['admin', 'agent']}><TicketDetails /></ProtectedRoute>} />
               
+              <Route path="teams" element={<ProtectedRoute requiredRoles={['admin', 'team_lead']}><TeamList /></ProtectedRoute>} />
+              <Route path="teams/new" element={<ProtectedRoute requiredRoles={['admin', 'team_lead']}><CreateTeamPage /></ProtectedRoute>} />
+              
               <Route path="admin">
                 <Route path="dashboard" element={
                   <ProtectedRoute requiredRoles={['admin']}>
@@ -147,6 +154,24 @@ export function App() {
                   </ProtectedRoute>
                 } />
               </Route>
+
+              {/* Teams */}
+              <Route
+                path="/app/teams"
+                element={
+                  <ProtectedRoute requiredRoles={["admin", "agent", "team_lead"]}>
+                    <TeamsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/app/teams/:id"
+                element={
+                  <ProtectedRoute requiredRoles={["admin", "agent", "team_lead"]}>
+                    <TeamDetailsPage />
+                  </ProtectedRoute>
+                }
+              />
             </Route>
 
             {/* Catch-all redirect */}

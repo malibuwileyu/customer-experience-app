@@ -73,6 +73,11 @@ export function Header() {
                 Tickets
               </Link>
             )}
+            {roles?.includes('team_lead') && (
+              <Link to="/app/teams" className="transition-colors hover:text-foreground/80">
+                Manage Teams
+              </Link>
+            )}
             {roles?.includes('admin') && (
               <Link to="/app/admin/dashboard" className="transition-colors hover:text-foreground/80">
                 Admin

@@ -84,18 +84,19 @@ types/
 import React from 'react'
 import { useQuery } from '@tanstack/react-query'
 
-// 2. Absolute imports (using @ alias)
-import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/contexts/AuthContext'
+// 2. Internal imports from src/ (using relative paths)
+import { supabase } from '../../lib/supabase'
+import { useAuth } from '../../contexts/AuthContext'
 
-// 3. Relative imports
+// 3. Local imports (same directory)
 import { TicketList } from './TicketList'
 ```
 
-### 3.2 Path Aliases
-- Use `@/*` for imports from `src/` directory
-- Use relative imports only for files in same directory
-- Avoid deep relative imports (../../)
+### 3.2 Path Rules
+- Use relative paths (`../../`) for imports from `src/` directory
+- Use `./` for imports from the same directory
+- Keep imports organized by type (external, internal, local)
+- Avoid mixing relative and absolute paths
 
 ## 4. Component Structure
 

@@ -18,7 +18,12 @@ import { AuthError } from '@supabase/supabase-js';
 
 const registrationSchema = z.object({
   email: z.string().min(1, 'Email is required').email('Invalid email format'),
-  password: z.string().min(1, 'Password is required'),
+  fullName: z.string().min(1, 'Full name is required'),
+  password: z.string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/[0-9]/, 'Password must contain at least one number')
+    .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character'),
   confirmPassword: z.string().min(1, 'Confirm password is required'),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords do not match",
@@ -35,10 +40,11 @@ export function RegistrationPage() {
     resolver: zodResolver(registrationSchema),
     defaultValues: {
       email: '',
+      fullName: '',
       password: '',
       confirmPassword: '',
     },
-    mode: 'onChange', // Enable real-time validation
+    mode: 'onChange',
   });
 
   const onSubmit = async (data: RegistrationFormData) => {
@@ -46,7 +52,11 @@ export function RegistrationPage() {
       setError(null);
       const { data: result, error } = await signUp({
         email: data.email,
-        password: data.password
+        password: data.password,
+        metadata: {
+          full_name: data.fullName,
+          role: 'customer'
+        }
       });
       
       if (error) {
@@ -105,6 +115,27 @@ export function RegistrationPage() {
                   </FormControl>
                   <FormMessage>
                     {form.formState.errors.email?.message}
+                  </FormMessage>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="fullName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Full Name</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="text"
+                      placeholder="Enter your full name"
+                      aria-invalid={!!form.formState.errors.fullName}
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage>
+                    {form.formState.errors.fullName?.message}
                   </FormMessage>
                 </FormItem>
               )}

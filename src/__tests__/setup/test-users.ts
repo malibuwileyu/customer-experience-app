@@ -103,20 +103,24 @@ export async function setupTestUsers() {
           }
         }
 
-        // Check for existing role
-        const { data: existingRole } = await serviceClient
-          .from('user_roles')
+        // Check for existing profile
+        const { data: existingProfile } = await serviceClient
+          .from('profiles')
           .select('role')
-          .eq('user_id', userId)
+          .eq('id', userId)
           .single()
 
-        if (!existingRole) {
-          // Assign role using service client (bypasses RLS)
-          const { error: roleError } = await serviceClient
-            .from('user_roles')
-            .insert({ user_id: userId, role: userData.role })
+        if (!existingProfile) {
+          // Create profile with role
+          const { error: profileError } = await serviceClient
+            .from('profiles')
+            .insert({
+              id: userId,
+              email: userData.email,
+              role: userData.role
+            })
 
-          if (roleError) throw roleError
+          if (profileError) throw profileError
         }
       } catch (error) {
         console.error(`Error setting up user ${userData.email}:`, error)
@@ -188,35 +192,19 @@ export async function cleanupTestUsers() {
       .delete()
       .in('role', Object.values(TEST_USER_DATA).map(u => u.role))
 
-    // Clean up user roles and delete auth users
+    // Clean up profiles and delete auth users
     for (const { id } of Object.values(TEST_USERS)) {
-      // Delete user role first
-      await serviceClient
-        .from('user_roles')
-        .delete()
-        .eq('user_id', id)
-
       // Delete user profile
       await serviceClient
         .from('profiles')
         .delete()
         .eq('id', id)
 
-      // Delete any team memberships
-      await serviceClient
-        .from('team_members')
-        .delete()
-        .eq('user_id', id)
-
-      // Delete auth user (this should cascade delete other related data)
+      // Delete auth user
       await serviceClient.auth.admin.deleteUser(id)
     }
 
-    // Reset TEST_USERS
-    TEST_USERS = {} as any
-
-    // Sign out current user
-    await supabase.auth.signOut()
+    console.log('Test users cleaned up')
   } catch (error) {
     console.error('Error cleaning up test users:', error)
     throw error

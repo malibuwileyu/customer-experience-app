@@ -19,6 +19,8 @@ import { CommentForm } from "./comment-form"
 import { CommentList } from "./comment-list"
 import { TicketAttachments } from './ticket-attachments'
 import { toast } from 'sonner'
+import { TeamSelector } from '../teams/TeamSelector'
+import { useAuth } from '../../hooks/auth/use-auth'
 
 interface TicketDetailsProps {
   ticket?: Ticket;
@@ -78,6 +80,8 @@ function normalizeAttachment(attachment: unknown): NormalizedAttachment | null {
 export function TicketDetails({ ticket: initialTicket, ticketId, onStatusChange, isUpdating = false }: TicketDetailsProps) {
   const [ticket, setTicket] = useState<Ticket | undefined>(initialTicket)
   const queryClient = useQueryClient()
+  const { user } = useAuth()
+  const isAdminOrTeamLead = user?.role === 'admin' || user?.role === 'team_lead'
 
   const ticketQuery = useQuery({
     queryKey: ['ticket', ticketId],
@@ -123,6 +127,20 @@ export function TicketDetails({ ticket: initialTicket, ticketId, onStatusChange,
     } catch (error) {
       console.error('Failed to update ticket status:', error)
       toast.error('Failed to update ticket status')
+    }
+  }
+
+  const handleTeamAssign = async (teamId: string) => {
+    if (!ticket) return
+
+    try {
+      const updatedTicket = await ticketService.assignTeam(ticket.id, teamId)
+      setTicket(updatedTicket)
+      queryClient.invalidateQueries({ queryKey: ['tickets'] })
+      toast.success('Team assigned successfully')
+    } catch (error) {
+      console.error('Failed to assign team:', error)
+      toast.error('Failed to assign team')
     }
   }
 
@@ -213,12 +231,20 @@ export function TicketDetails({ ticket: initialTicket, ticketId, onStatusChange,
             </Badge>
           </div>
 
-          {ticket.team && (
-            <div>
-              <h3 className="mb-2 font-medium">Team</h3>
+          <div>
+            <h3 className="mb-2 font-medium">Team</h3>
+            {isAdminOrTeamLead ? (
+              <TeamSelector
+                value={ticket.team_id}
+                onChange={handleTeamAssign}
+                placeholder="Assign to team..."
+              />
+            ) : ticket.team ? (
               <p>{ticket.team.name}</p>
-            </div>
-          )}
+            ) : (
+              <p className="text-muted-foreground">No team assigned</p>
+            )}
+          </div>
 
           {ticket.category && (
             <div>

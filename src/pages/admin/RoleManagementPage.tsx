@@ -33,8 +33,8 @@ interface User {
   role: UserRole | null;
 }
 
-interface DbUserRole {
-  user_id: string;
+interface DbProfile {
+  id: string;
   role: UserRole;
 }
 
@@ -54,23 +54,23 @@ export function RoleManagementPage() {
         throw usersError;
       }
 
-      // Then get their roles
-      const { data: roles, error: rolesError } = await serviceClient
-        .from('user_roles')
-        .select('user_id, role')
+      // Then get their roles from profiles
+      const { data: profiles, error: profilesError } = await serviceClient
+        .from('profiles')
+        .select('id, role')
 
-      if (rolesError) {
-        console.error('Error fetching roles:', rolesError);
-        throw rolesError;
+      if (profilesError) {
+        console.error('Error fetching profiles:', profilesError);
+        throw profilesError;
       }
 
-      console.log('Fetched roles:', roles);
+      console.log('Fetched profiles:', profiles);
 
-      // Combine users with their roles
+      // Combine users with their roles from profiles
       return (users.users || []).map((user: AuthUser) => ({
         id: user.id,
         email: user.email,
-        role: (roles as DbUserRole[] | null)?.find(r => r.user_id === user.id)?.role || null
+        role: (profiles as DbProfile[] | null)?.find(p => p.id === user.id)?.role || null
       })) as User[]
     },
   })

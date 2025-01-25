@@ -16,8 +16,9 @@ import { Database } from '../types/database.types';
  */
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseServiceKey = import.meta.env.VITE_SUPABASE_SERVICE_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
+if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
@@ -52,9 +53,46 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     detectSessionInUrl: true, // Handle auth redirects automatically
     flowType: 'pkce', // Use PKCE flow for enhanced security
   },
+  db: {
+    schema: 'public'
+  },
   global: {
     headers: {
       'X-Client-Info': 'customer-experience-app', // Identify client in requests
-    },
+    }
+  },
+});
+
+/**
+ * Service client with admin privileges
+ * Used for operations that need to bypass RLS policies
+ * 
+ * Features:
+ * - Strong typing with Database type
+ * - No session persistence
+ * - No token refresh
+ * - Service role key for admin access
+ * 
+ * @example
+ * ```typescript
+ * // Admin operations bypassing RLS
+ * const { data, error } = await serviceClient
+ *   .from('users')
+ *   .select('*');
+ * ```
+ */
+export const serviceClient = createClient<Database>(supabaseUrl, supabaseServiceKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+    detectSessionInUrl: false
+  },
+  db: {
+    schema: 'public'
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'customer-experience-app',
+    }
   },
 }); 

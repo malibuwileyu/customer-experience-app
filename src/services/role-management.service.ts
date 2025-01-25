@@ -10,6 +10,7 @@
 import { supabase } from "../lib/supabase"
 import { createClient } from '@supabase/supabase-js'
 import type { UserRole, Permission, RoleAuditLog } from "../types/role.types"
+import type { Database } from "../types/database.types"
 
 /**
  * Required environment variables for role management service
@@ -105,24 +106,24 @@ export const roleManagementService = {
    * 
    * @async
    * @param {string} userId - ID of the user to get the role for
-   * @returns {Promise<string | null>} The user's role or null if not found
+   * @returns {Promise<UserRole | null>} The user's role or null if not found
    * @throws {Error} If there's an error fetching the role
    */
-  async getUserRole(userId: string) {
+  async getUserRole(userId: string): Promise<UserRole | null> {
     const { data, error } = await serviceClient
-      .from('user_roles')
+      .from('profiles')
       .select('role')
-      .eq('user_id', userId)
+      .eq('id', userId)
       .maybeSingle()
 
     if (error) throw error
-    return data?.role ?? null
+    return (data?.role as UserRole) ?? null
   },
 
   /**
    * Assign a role to a user
    * 
-   * Creates or updates a user's role and logs the change in the audit log.
+   * Updates a user's role in their profile and logs the change in the audit log.
    * Uses service client to bypass RLS for role management operations.
    * 
    * @async
@@ -130,22 +131,23 @@ export const roleManagementService = {
    * @returns {Promise<{ success: boolean }>} Success status of the operation
    * @throws {Error} If there's an error assigning the role or logging the change
    */
-  async assignRole({ userId, role, performedBy }: AssignRoleParams) {
+  async assignRole({ userId, role, performedBy }: AssignRoleParams): Promise<{ success: boolean }> {
     console.log('Role management service: assigning role', { userId, role, performedBy });
 
     // Get current role using service client
     const { data: oldRole } = await serviceClient
-      .from('user_roles')
+      .from('profiles')
       .select('role')
-      .eq('user_id', userId)
+      .eq('id', userId)
       .maybeSingle()
 
     console.log('Current role:', oldRole);
 
     // Update role using service client
     const { error: roleError } = await serviceClient
-      .from('user_roles')
-      .upsert({ user_id: userId, role }, { onConflict: 'user_id' })
+      .from('profiles')
+      .update({ role: role as Database['public']['Enums']['user_role'] })
+      .eq('id', userId)
 
     if (roleError) {
       console.error('Error updating role:', roleError);
@@ -160,10 +162,10 @@ export const roleManagementService = {
       .insert({
         user_id: userId,
         action: oldRole ? 'update' : 'create',
-        old_role: oldRole?.role,
+        old_role: oldRole?.role as UserRole | null,
         new_role: role,
-        performed_by: performedBy
-      })
+        changed_by: performedBy
+      } satisfies Omit<RoleAuditLog, 'id' | 'created_at' | 'performed_by_user'>)
 
     if (logError) {
       console.error('Error logging role change:', logError);
@@ -177,7 +179,7 @@ export const roleManagementService = {
   /**
    * Remove a user's role
    * 
-   * Deletes the user's role and logs the change in the audit log.
+   * Sets the user's role back to 'customer' and logs the change in the audit log.
    * Uses service client to bypass RLS for role management operations.
    * 
    * @async
@@ -186,19 +188,20 @@ export const roleManagementService = {
    * @returns {Promise<{ success: boolean }>} Success status of the operation
    * @throws {Error} If there's an error removing the role or logging the change
    */
-  async removeRole(userId: string, performedBy: string) {
-    const { data: oldRole } = await supabase
-      .from('user_roles')
+  async removeRole(userId: string, performedBy: string): Promise<{ success: boolean }> {
+    const { data: oldRole } = await serviceClient
+      .from('profiles')
       .select('role')
-      .eq('user_id', userId)
+      .eq('id', userId)
       .maybeSingle()
 
     if (!oldRole) return { success: true }
 
-    const { error: roleError } = await supabase
-      .from('user_roles')
-      .delete()
-      .eq('user_id', userId)
+    // Set role back to customer
+    const { error: roleError } = await serviceClient
+      .from('profiles')
+      .update({ role: 'customer' as Database['public']['Enums']['user_role'] })
+      .eq('id', userId)
 
     if (roleError) throw roleError
 
@@ -208,10 +211,10 @@ export const roleManagementService = {
       .insert({
         user_id: userId,
         action: 'delete',
-        old_role: oldRole.role,
-        new_role: null,
-        performed_by: performedBy
-      })
+        old_role: oldRole.role as UserRole,
+        new_role: 'customer',
+        changed_by: performedBy
+      } satisfies Omit<RoleAuditLog, 'id' | 'created_at' | 'performed_by_user'>)
 
     if (logError) throw logError
 
@@ -229,7 +232,7 @@ export const roleManagementService = {
    * @returns {Promise<boolean>} Whether the user has the permission
    * @throws {Error} If there's an error checking the permission
    */
-  async checkPermission({ userId, permission }: CheckPermissionParams) {
+  async checkPermission({ userId, permission }: CheckPermissionParams): Promise<boolean> {
     const { data, error } = await supabase.rpc('check_user_permission', {
       user_id: userId,
       permission_name: permission
@@ -250,7 +253,15 @@ export const roleManagementService = {
    * @returns {Promise<Permission[]>} Array of permissions granted to the role
    * @throws {Error} If there's an error fetching the permissions
    */
-  async getRolePermissions(role: UserRole) {
+  async getRolePermissions(role: UserRole): Promise<Permission[]> {
+    type RolePermissionResult = {
+      permissions: {
+        id: string;
+        name: string;
+        description: string | null;
+      };
+    };
+
     const { data, error } = await supabase
       .from('role_permissions')
       .select(`
@@ -260,21 +271,20 @@ export const roleManagementService = {
           description
         )
       `)
-      .eq('role', role)
+      .eq('role', role as Database['public']['Enums']['user_role'])
 
     if (error) throw error
 
-    const rolePermissions = data as unknown as RolePermissionResponse[]
-    return rolePermissions.map(d => ({
-      name: d.permissions.name,
-      description: d.permissions.description || ''
-    })) as Permission[]
+    return ((data as unknown as RolePermissionResult[]) || []).map(rp => ({
+      name: rp.permissions.name,
+      description: rp.permissions.description || ''
+    }))
   },
 
   /**
-   * Get the audit log of role changes for a user
+   * Get the audit log for a user's role changes
    * 
-   * Retrieves a chronological history of role changes for a user,
+   * Retrieves a history of all role changes for a specific user,
    * including who performed each change.
    * 
    * @async
@@ -282,19 +292,31 @@ export const roleManagementService = {
    * @returns {Promise<RoleAuditLog[]>} Array of role change audit entries
    * @throws {Error} If there's an error fetching the audit log
    */
-  async getUserRoleAuditLog(userId: string) {
+  async getUserRoleAuditLog(userId: string): Promise<RoleAuditLog[]> {
+    type AuditLogResult = {
+      id: string;
+      user_id: string;
+      action: 'create' | 'update' | 'delete';
+      old_role: Database['public']['Enums']['user_role'] | null;
+      new_role: Database['public']['Enums']['user_role'] | null;
+      changed_by: string;
+      performed_by_user?: {
+        email: string;
+      };
+      created_at: string;
+    };
+
     const { data, error } = await supabase
       .from('role_audit_log')
-      .select(`
-        *,
-        performed_by_user:performed_by (
-          email
-        )
-      `)
+      .select('*')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
 
     if (error) throw error
-    return data as RoleAuditLog[]
+    return ((data as unknown as AuditLogResult[]) || []).map(log => ({
+      ...log,
+      old_role: log.old_role as UserRole | null,
+      new_role: log.new_role as UserRole | null
+    }))
   }
 } 
