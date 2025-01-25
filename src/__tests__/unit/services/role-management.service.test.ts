@@ -1,33 +1,24 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { roleManagementService, serviceClient } from '../role-management.service'
-import { supabase } from '../../lib/supabase'
+/**
+ * @fileoverview Role management service test suite
+ * @module services/__tests__/role-management
+ */
 
-// Mock Supabase clients
-vi.mock('../../lib/supabase', () => ({
+import { vi } from 'vitest'
+
+// Mock Supabase client - must be before other imports
+vi.mock('../../../lib/supabase', () => ({
   supabase: {
-    from: vi.fn(() => ({
-      select: vi.fn(),
-      insert: vi.fn(),
-      update: vi.fn(),
-      delete: vi.fn()
-    })),
-    rpc: vi.fn()
+    from: vi.fn(),
+    auth: {
+      getUser: vi.fn()
+    }
   }
 }))
 
-vi.mock('@supabase/supabase-js', () => ({
-  createClient: vi.fn(() => ({
-    from: vi.fn(() => ({
-      select: vi.fn(),
-      insert: vi.fn(),
-      update: vi.fn(),
-      delete: vi.fn(),
-      upsert: vi.fn(),
-      eq: vi.fn(),
-      maybeSingle: vi.fn()
-    }))
-  }))
-}))
+import { describe, it, expect, beforeEach } from 'vitest'
+import { roleManagementService } from '../../../services/role-management.service'
+import { supabase } from '../../../lib/supabase'
+import type { UserRole } from '../../../types/role.types'
 
 describe('Role Management Service', () => {
   beforeEach(() => {
@@ -35,14 +26,14 @@ describe('Role Management Service', () => {
   })
 
   describe('getUserRole', () => {
-    it('should return role when found', async () => {
-      const mockUserId = 'test-user-id'
-      const mockRole = 'agent'
-      
-      vi.mocked(serviceClient.from).mockReturnValue({
+    it('should return user role when found', async () => {
+      const mockRole: UserRole = 'admin'
+      const userId = 'test-user-id'
+
+      vi.mocked(supabase.from).mockReturnValue({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
-            maybeSingle: vi.fn().mockResolvedValue({
+            single: vi.fn().mockResolvedValue({
               data: { role: mockRole },
               error: null
             })
@@ -50,17 +41,17 @@ describe('Role Management Service', () => {
         })
       } as any)
 
-      const result = await roleManagementService.getUserRole(mockUserId)
+      const result = await roleManagementService.getUserRole(userId)
       expect(result).toBe(mockRole)
     })
 
     it('should return null when role not found', async () => {
-      const mockUserId = 'test-user-id'
-      
-      vi.mocked(serviceClient.from).mockReturnValue({
+      const userId = 'test-user-id'
+
+      vi.mocked(supabase.from).mockReturnValue({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
-            maybeSingle: vi.fn().mockResolvedValue({
+            single: vi.fn().mockResolvedValue({
               data: null,
               error: null
             })
@@ -68,7 +59,7 @@ describe('Role Management Service', () => {
         })
       } as any)
 
-      const result = await roleManagementService.getUserRole(mockUserId)
+      const result = await roleManagementService.getUserRole(userId)
       expect(result).toBeNull()
     })
   })
@@ -171,26 +162,13 @@ describe('Role Management Service', () => {
 
   describe('assignRole', () => {
     it('should assign role successfully', async () => {
-      const mockParams = {
+      const params = {
         userId: 'test-user-id',
-        role: 'agent' as const,
+        role: 'admin' as UserRole,
         performedBy: 'admin-id'
       }
 
-      // Mock getting current role from profiles
-      vi.mocked(serviceClient.from).mockReturnValueOnce({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            maybeSingle: vi.fn().mockResolvedValue({
-              data: { role: 'customer' },
-              error: null
-            })
-          })
-        })
-      } as any)
-
-      // Mock updating profile role
-      vi.mocked(serviceClient.from).mockReturnValueOnce({
+      vi.mocked(supabase.from).mockReturnValue({
         update: vi.fn().mockReturnValue({
           eq: vi.fn().mockResolvedValue({
             error: null
@@ -198,38 +176,17 @@ describe('Role Management Service', () => {
         })
       } as any)
 
-      // Mock inserting audit log
-      vi.mocked(serviceClient.from).mockReturnValueOnce({
-        insert: vi.fn().mockResolvedValue({
-          error: null
-        })
-      } as any)
-
-      const result = await roleManagementService.assignRole(mockParams)
-      expect(result).toEqual({ success: true })
+      await expect(roleManagementService.assignRole(params)).resolves.toEqual({ success: true })
     })
 
-    it('should throw error when role assignment fails', async () => {
-      const mockParams = {
+    it('should throw error when assignment fails', async () => {
+      const params = {
         userId: 'test-user-id',
-        role: 'agent' as const,
+        role: 'admin' as UserRole,
         performedBy: 'admin-id'
       }
 
-      // Mock getting current role from profiles
-      vi.mocked(serviceClient.from).mockReturnValueOnce({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            maybeSingle: vi.fn().mockResolvedValue({
-              data: { role: 'customer' },
-              error: null
-            })
-          })
-        })
-      } as any)
-
-      // Mock updating profile role with error
-      vi.mocked(serviceClient.from).mockReturnValueOnce({
+      vi.mocked(supabase.from).mockReturnValue({
         update: vi.fn().mockReturnValue({
           eq: vi.fn().mockResolvedValue({
             error: { message: 'Failed to assign role' }
@@ -237,7 +194,7 @@ describe('Role Management Service', () => {
         })
       } as any)
 
-      await expect(roleManagementService.assignRole(mockParams))
+      await expect(roleManagementService.assignRole(params))
         .rejects.toThrow('Failed to assign role')
     })
   })

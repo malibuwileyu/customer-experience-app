@@ -11,6 +11,7 @@ import { expect, afterEach, afterAll, vi } from 'vitest'
 import { cleanup } from '@testing-library/react'
 import * as matchers from '@testing-library/jest-dom/matchers'
 import { cleanupTestUsers } from './test-users'
+import { resetSupabaseMocks } from '../mocks/supabase'
 
 expect.extend(matchers)
 
@@ -38,6 +39,7 @@ Element.prototype.releasePointerCapture = vi.fn()
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
+  resetSupabaseMocks()
 })
 
 // Clean up test users after all tests

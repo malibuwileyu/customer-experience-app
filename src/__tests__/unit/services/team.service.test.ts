@@ -3,26 +3,23 @@
  * @module services/__tests__/team
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { teamService } from '../team.service'
-import { supabase } from '../../lib/supabase'
-import type { CreateTeamDTO, AddTeamMemberDTO } from '../../types/models/team.types'
+import { vi } from 'vitest'
 
-// Mock Supabase client
-vi.mock('../../lib/supabase', () => ({
+// Mock Supabase client - must be before other imports
+vi.mock('../../../lib/supabase', () => ({
   supabase: {
-    from: vi.fn(() => ({
-      select: vi.fn(),
-      insert: vi.fn(),
-      update: vi.fn(),
-      delete: vi.fn(),
-      eq: vi.fn()
-    })),
+    from: vi.fn(),
     auth: {
       getUser: vi.fn()
     }
   }
 }))
+
+import { describe, it, expect, beforeEach } from 'vitest'
+import { teamService } from '../../../services/team.service'
+import { supabase } from '../../../lib/supabase'
+import { mockSupabaseClient, createChainableMock } from '../../mocks/supabase'
+import type { CreateTeamDTO, AddTeamMemberDTO } from '../../../types/models/team.types'
 
 describe('Team Service', () => {
   beforeEach(() => {
@@ -62,7 +59,8 @@ describe('Team Service', () => {
       const mockUser = { id: 'test-user-id' }
       const mockTeam: CreateTeamDTO = {
         name: 'Test Team',
-        description: 'Test Description'
+        description: 'Test Description',
+        lead_id: mockUser.id
       }
 
       vi.mocked(supabase.auth.getUser).mockResolvedValue({
@@ -96,7 +94,7 @@ describe('Team Service', () => {
         updated_at: '2024-01-26T00:00:00Z'
       }
 
-      vi.mocked(supabase.from).mockReturnValue({
+      mockSupabaseClient.from.mockReturnValue({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
             single: vi.fn().mockResolvedValue({
@@ -112,7 +110,7 @@ describe('Team Service', () => {
     })
 
     it('should throw error when team not found', async () => {
-      vi.mocked(supabase.from).mockReturnValue({
+      mockSupabaseClient.from.mockReturnValue({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
             single: vi.fn().mockResolvedValue({
@@ -134,7 +132,7 @@ describe('Team Service', () => {
         description: 'Updated Description'
       }
 
-      vi.mocked(supabase.from).mockReturnValue({
+      mockSupabaseClient.from.mockReturnValue({
         update: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
             select: vi.fn().mockReturnValue({
@@ -156,7 +154,7 @@ describe('Team Service', () => {
         name: 'Updated Team Name'
       }
 
-      vi.mocked(supabase.from).mockReturnValue({
+      mockSupabaseClient.from.mockReturnValue({
         update: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
             select: vi.fn().mockReturnValue({
@@ -182,7 +180,7 @@ describe('Team Service', () => {
         role: 'agent'
       }
 
-      vi.mocked(supabase.from).mockReturnValue({
+      mockSupabaseClient.from.mockReturnValue({
         insert: vi.fn().mockReturnValue({
           select: vi.fn().mockReturnValue({
             single: vi.fn().mockResolvedValue({
@@ -204,7 +202,7 @@ describe('Team Service', () => {
         role: 'agent'
       }
 
-      vi.mocked(supabase.from).mockReturnValue({
+      mockSupabaseClient.from.mockReturnValue({
         insert: vi.fn().mockReturnValue({
           select: vi.fn().mockReturnValue({
             single: vi.fn().mockResolvedValue({
@@ -222,7 +220,7 @@ describe('Team Service', () => {
 
   describe('removeTeamMember', () => {
     it('should remove team member successfully', async () => {
-      vi.mocked(supabase.from).mockReturnValue({
+      mockSupabaseClient.from.mockReturnValue({
         delete: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
             eq: vi.fn().mockResolvedValue({
@@ -237,7 +235,7 @@ describe('Team Service', () => {
     })
 
     it('should throw error when removal fails', async () => {
-      vi.mocked(supabase.from).mockReturnValue({
+      mockSupabaseClient.from.mockReturnValue({
         delete: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
             eq: vi.fn().mockResolvedValue({
@@ -273,7 +271,7 @@ describe('Team Service', () => {
         }
       ]
 
-      vi.mocked(supabase.from).mockReturnValue({
+      mockSupabaseClient.from.mockReturnValue({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockResolvedValue({
             data: mockMembers,
@@ -287,7 +285,7 @@ describe('Team Service', () => {
     })
 
     it('should return empty array when no members found', async () => {
-      vi.mocked(supabase.from).mockReturnValue({
+      mockSupabaseClient.from.mockReturnValue({
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockResolvedValue({
             data: [],

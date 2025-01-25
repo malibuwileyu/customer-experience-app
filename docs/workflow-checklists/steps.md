@@ -124,10 +124,25 @@
     - [ ] Team components
     - [ ] File upload components
     - [ ] Bulk operation components
-  - [ ] Hooks
-    - [ ] Authentication hooks
-    - [ ] Data fetching hooks
-    - [ ] Subscription hooks
+  - [x] Hooks (2024-03-19 16:00 EST)
+    - [x] Authentication hooks (2024-03-19 14:30 EST)
+      - [x] useAuth hook (2024-03-19 14:30 EST)
+      - [x] useProfile hook (2024-03-19 14:35 EST)
+      - [x] useUserRoles hook (2024-03-19 14:40 EST)
+    - [x] Data fetching hooks (2024-03-19 15:55 EST)
+      - [x] useTickets (2024-03-19 15:30 EST)
+      - [x] useUserTickets (2024-03-19 15:35 EST)
+      - [x] useAllTickets (2024-03-19 15:40 EST)
+      - [x] useTeams (2024-03-19 15:45 EST)
+      - [x] useTeam (2024-03-19 15:50 EST)
+      - [x] useTeamMembers (2024-03-19 15:55 EST)
+    - [x] Subscription hooks (2024-03-19 16:00 EST)
+      - [x] useTicketSubscription (2024-03-19 16:00 EST)
+        - [x] Real-time updates on new ticket creation
+        - [x] Real-time updates on ticket updates
+        - [x] Real-time updates on ticket deletion
+        - [x] Subscription cleanup on unmount
+        - [x] Query invalidation
   - [ ] Services
     - [ ] Ticket service
     - [ ] Team service
@@ -216,10 +231,34 @@
 
 ## Testing Requirements
 - [ ] Unit Tests
-  - [ ] File upload components
-  - [ ] Bulk operations
-  - [x] Team management (2024-01-28 13:10 EST)
-  - [ ] Knowledge base
+  - [ ] Components
+    - [ ] Ticket components
+    - [ ] Team components
+    - [ ] File upload components
+    - [ ] Bulk operation components
+  - [x] Hooks (2024-03-19 16:00 EST)
+    - [x] Authentication hooks (2024-03-19 14:30 EST)
+      - [x] useAuth hook (2024-03-19 14:30 EST)
+      - [x] useProfile hook (2024-03-19 14:35 EST)
+      - [x] useUserRoles hook (2024-03-19 14:40 EST)
+    - [x] Data fetching hooks (2024-03-19 15:55 EST)
+      - [x] useTickets (2024-03-19 15:30 EST)
+      - [x] useUserTickets (2024-03-19 15:35 EST)
+      - [x] useAllTickets (2024-03-19 15:40 EST)
+      - [x] useTeams (2024-03-19 15:45 EST)
+      - [x] useTeam (2024-03-19 15:50 EST)
+      - [x] useTeamMembers (2024-03-19 15:55 EST)
+    - [x] Subscription hooks (2024-03-19 16:00 EST)
+      - [x] useTicketSubscription (2024-03-19 16:00 EST)
+        - [x] Real-time updates on new ticket creation
+        - [x] Real-time updates on ticket updates
+        - [x] Real-time updates on ticket deletion
+        - [x] Subscription cleanup on unmount
+        - [x] Query invalidation
+  - [ ] Services
+    - [ ] Ticket service
+    - [ ] Team service
+    - [ ] File service
 - [x] Integration Tests (2024-01-30 15:30 EST)
   - [x] Team operations (2024-01-28 13:10 EST)
     - [x] Team creation and leadership (2024-01-28 13:10 EST)

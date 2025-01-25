@@ -1,23 +1,24 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { ticketService } from '../ticket.service'
-import { supabase } from '../../lib/supabase'
-import type { TicketPriority } from '../../types/models/ticket.types'
+/**
+ * @fileoverview Ticket service test suite
+ * @module services/__tests__/ticket
+ */
 
-// Mock Supabase client
-vi.mock('../../lib/supabase', () => ({
+import { vi } from 'vitest'
+
+// Mock Supabase client - must be before other imports
+vi.mock('../../../lib/supabase', () => ({
   supabase: {
-    from: vi.fn(() => ({
-      select: vi.fn(),
-      insert: vi.fn(),
-      update: vi.fn(),
-      delete: vi.fn()
-    })),
-    rpc: vi.fn(),
+    from: vi.fn(),
     auth: {
       getUser: vi.fn()
     }
   }
 }))
+
+import { describe, it, expect, beforeEach } from 'vitest'
+import { ticketService } from '../../../services/ticket.service'
+import { supabase } from '../../../lib/supabase'
+import type { CreateTicketDTO, TicketStatus, TicketPriority } from '../../../types/models/ticket.types'
 
 describe('Ticket Service', () => {
   beforeEach(() => {
@@ -27,7 +28,7 @@ describe('Ticket Service', () => {
   describe('createTicket', () => {
     it('should create a ticket successfully', async () => {
       const mockUser = { id: 'test-user-id' }
-      const mockTicket = {
+      const mockTicket: CreateTicketDTO = {
         title: 'Test Ticket',
         description: 'Test Description',
         priority: 'medium' as TicketPriority
@@ -55,7 +56,7 @@ describe('Ticket Service', () => {
 
     it('should throw error when ticket creation fails', async () => {
       const mockUser = { id: 'test-user-id' }
-      const mockTicket = {
+      const mockTicket: CreateTicketDTO = {
         title: 'Test Ticket',
         description: 'Test Description',
         priority: 'medium' as TicketPriority
@@ -77,18 +78,22 @@ describe('Ticket Service', () => {
         })
       } as any)
 
-      await expect(ticketService.createTicket(mockTicket)).rejects.toThrow('Failed to create ticket')
+      await expect(ticketService.createTicket(mockTicket))
+        .rejects.toThrow('Failed to create ticket')
     })
   })
 
-  describe('getTicketById', () => {
+  describe('getTicket', () => {
     it('should return ticket when found', async () => {
       const mockTicket = {
         id: 'test-ticket-id',
         title: 'Test Ticket',
         description: 'Test Description',
         priority: 'medium' as TicketPriority,
-        created_by: 'test-user-id'
+        status: 'open' as TicketStatus,
+        created_by: 'test-user-id',
+        created_at: '2024-01-26T00:00:00Z',
+        updated_at: '2024-01-26T00:00:00Z'
       }
 
       vi.mocked(supabase.from).mockReturnValue({
@@ -126,8 +131,8 @@ describe('Ticket Service', () => {
   describe('updateTicket', () => {
     it('should update ticket successfully', async () => {
       const mockUpdate = {
-        title: 'Updated Title',
-        description: 'Updated Description'
+        title: 'Updated Ticket',
+        status: 'in_progress' as TicketStatus
       }
 
       vi.mocked(supabase.from).mockReturnValue({
@@ -149,7 +154,7 @@ describe('Ticket Service', () => {
 
     it('should throw error when update fails', async () => {
       const mockUpdate = {
-        title: 'Updated Title'
+        title: 'Updated Ticket'
       }
 
       vi.mocked(supabase.from).mockReturnValue({

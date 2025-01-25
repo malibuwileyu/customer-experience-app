@@ -14,7 +14,7 @@ import { User, Session } from '@supabase/supabase-js';
  * 
  * @type {UserRole}
  */
-export type UserRole = 'admin' | 'agent' | 'team_lead' | 'customer';
+export type UserRole = 'admin' | 'super_admin' | 'team_lead' | 'agent' | 'customer';
 
 /**
  * Extended user profile information
@@ -43,6 +43,7 @@ export interface Profile {
   created_at?: string;
   updated_at?: string;
   last_seen_at?: string | null;
+  team_id?: string | null;
 }
 
 /**

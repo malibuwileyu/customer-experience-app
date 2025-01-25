@@ -110,10 +110,10 @@ export const teamService = {
    * 
    * @async
    * @param {string} id - Team ID
-   * @returns {Promise<Team>} Team data
-   * @throws {Error} If team not found or fetch fails
+   * @returns {Promise<Team | null>} Team data or null if not found
+   * @throws {Error} If fetch fails
    */
-  async getTeam(id: string): Promise<Team> {
+  async getTeam(id: string): Promise<Team | null> {
     const { data: team, error } = await serviceClient
       .from("teams")
       .select()
@@ -121,8 +121,11 @@ export const teamService = {
       .single()
 
     if (error) {
-      console.error('Failed to fetch team:', error);
-      throw new Error("Team not found");
+      if (error.code === 'PGRST116') {
+        return null
+      }
+      console.error('Failed to fetch team:', error)
+      throw new Error("Failed to fetch team")
     }
 
     // Get team members separately

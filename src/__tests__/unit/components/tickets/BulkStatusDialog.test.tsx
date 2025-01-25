@@ -1,31 +1,29 @@
-import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
-import { BulkStatusDialog } from '../../../../components/tickets/BulkStatusDialog'
-import { useToast } from '../../../../hooks/use-toast'
-import { ticketService } from '../../../../services/ticket.service'
+import { BulkStatusDialog } from '@/components/tickets/BulkStatusDialog'
+import { ticketService } from '@/services/ticket.service'
+import { TICKET_STATUS, TicketStatus } from '@/types/models/ticket.types'
+import { toast } from 'sonner'
 
-// Mock dependencies
-vi.mock('../../../../hooks/use-toast', () => ({
-  useToast: vi.fn(() => ({
-    toast: vi.fn(),
+// Mock the toast module
+vi.mock('sonner', () => ({
+  toast: {
     success: vi.fn(),
     error: vi.fn(),
-    warning: vi.fn(),
-    info: vi.fn(),
     loading: vi.fn(),
     dismiss: vi.fn()
-  }))
+  }
 }))
 
-vi.mock('../../../../services/ticket.service', () => ({
+// Mock the ticket service with proper types
+vi.mock('@/services/ticket.service', () => ({
   ticketService: {
-    bulkUpdateStatus: vi.fn()
+    bulkUpdateStatus: vi.fn().mockImplementation(async () => Promise.resolve())
   }
 }))
 
 describe('BulkStatusDialog', () => {
-  const mockTicketIds = ['1', '2', '3']
+  const mockTicketIds = ['1', '2']
   const mockOnClose = vi.fn()
   const mockOnUpdate = vi.fn()
 
@@ -33,7 +31,7 @@ describe('BulkStatusDialog', () => {
     vi.clearAllMocks()
   })
 
-  it('renders dialog with status options', () => {
+  it('renders status options', () => {
     render(
       <BulkStatusDialog
         isOpen={true}
@@ -43,63 +41,38 @@ describe('BulkStatusDialog', () => {
       />
     )
 
-    expect(screen.getByText(/update status/i)).toBeInTheDocument()
-    expect(screen.getByRole('combobox')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /update/i })).toBeInTheDocument()
+    Object.entries(TICKET_STATUS).forEach(([key, value]) => {
+      expect(screen.getByText(value)).toBeInTheDocument()
+    })
   })
 
-  it('handles status update success', async () => {
-    const mockSuccess = vi.fn()
-    vi.mocked(useToast).mockReturnValue({
-      toast: vi.fn(),
-      success: mockSuccess,
-      error: vi.fn(),
-      warning: vi.fn(),
-      info: vi.fn(),
-      loading: vi.fn(),
-      dismiss: vi.fn()
-    })
-    vi.mocked(ticketService.bulkUpdateStatus).mockResolvedValue(undefined)
+  it('handles successful status update for single ticket', async () => {
+    const newStatus = 'in_progress' as TicketStatus
+    vi.mocked(ticketService.bulkUpdateStatus).mockResolvedValueOnce(undefined)
 
     render(
       <BulkStatusDialog
         isOpen={true}
         onClose={mockOnClose}
-        ticketIds={mockTicketIds}
+        ticketIds={['1']}
         onUpdate={mockOnUpdate}
       />
     )
 
-    // Select a status
-    const select = screen.getByRole('combobox')
-    fireEvent.change(select, { target: { value: 'in_progress' } })
-
-    // Click update button
-    const updateButton = screen.getByRole('button', { name: /update/i })
-    fireEvent.click(updateButton)
+    fireEvent.click(screen.getByText(TICKET_STATUS.in_progress))
+    fireEvent.click(screen.getByText('Update'))
 
     await waitFor(() => {
-      expect(ticketService.bulkUpdateStatus).toHaveBeenCalledWith(mockTicketIds, 'in_progress')
-      expect(mockSuccess).toHaveBeenCalledWith(
-        'Successfully updated status for 3 tickets'
-      )
+      expect(ticketService.bulkUpdateStatus).toHaveBeenCalledWith(['1'], newStatus)
+      expect(toast.success).toHaveBeenCalledWith('Successfully updated 1 ticket')
       expect(mockOnUpdate).toHaveBeenCalled()
       expect(mockOnClose).toHaveBeenCalled()
     })
   })
 
-  it('handles status update failure', async () => {
-    const mockError = vi.fn()
-    vi.mocked(useToast).mockReturnValue({
-      toast: vi.fn(),
-      success: vi.fn(),
-      error: mockError,
-      warning: vi.fn(),
-      info: vi.fn(),
-      loading: vi.fn(),
-      dismiss: vi.fn()
-    })
-    vi.mocked(ticketService.bulkUpdateStatus).mockRejectedValue(new Error('Update failed'))
+  it('handles successful status update for multiple tickets', async () => {
+    const newStatus = 'resolved' as TicketStatus
+    vi.mocked(ticketService.bulkUpdateStatus).mockResolvedValueOnce(undefined)
 
     render(
       <BulkStatusDialog
@@ -110,25 +83,50 @@ describe('BulkStatusDialog', () => {
       />
     )
 
-    // Select a status
-    const select = screen.getByRole('combobox')
-    fireEvent.change(select, { target: { value: 'in_progress' } })
-
-    // Click update button
-    const updateButton = screen.getByRole('button', { name: /update/i })
-    fireEvent.click(updateButton)
+    fireEvent.click(screen.getByText(TICKET_STATUS.resolved))
+    fireEvent.click(screen.getByText('Update'))
 
     await waitFor(() => {
-      expect(ticketService.bulkUpdateStatus).toHaveBeenCalledWith(mockTicketIds, 'in_progress')
-      expect(mockError).toHaveBeenCalledWith(
-        'Failed to update ticket status'
-      )
+      expect(ticketService.bulkUpdateStatus).toHaveBeenCalledWith(mockTicketIds, newStatus)
+      expect(toast.success).toHaveBeenCalledWith('Successfully updated 2 tickets')
+      expect(mockOnUpdate).toHaveBeenCalled()
+      expect(mockOnClose).toHaveBeenCalled()
+    })
+  })
+
+  it('handles failed status update', async () => {
+    const newStatus = 'closed' as TicketStatus
+    const error = new Error('Failed to update tickets')
+    vi.mocked(ticketService.bulkUpdateStatus).mockRejectedValueOnce(error)
+
+    render(
+      <BulkStatusDialog
+        isOpen={true}
+        onClose={mockOnClose}
+        ticketIds={mockTicketIds}
+        onUpdate={mockOnUpdate}
+      />
+    )
+
+    fireEvent.click(screen.getByText(TICKET_STATUS.closed))
+    fireEvent.click(screen.getByText('Update'))
+
+    await waitFor(() => {
+      expect(ticketService.bulkUpdateStatus).toHaveBeenCalledWith(mockTicketIds, newStatus)
+      expect(toast.error).toHaveBeenCalledWith('Failed to update tickets')
       expect(mockOnUpdate).not.toHaveBeenCalled()
       expect(mockOnClose).not.toHaveBeenCalled()
     })
   })
 
-  it('disables update button when no status is selected', () => {
+  it('shows loading state during update', async () => {
+    // Create a promise that we can resolve later
+    let resolveUpdate: () => void
+    const updatePromise = new Promise<void>((resolve) => {
+      resolveUpdate = resolve
+    })
+    vi.mocked(ticketService.bulkUpdateStatus).mockImplementationOnce(() => updatePromise)
+
     render(
       <BulkStatusDialog
         isOpen={true}
@@ -138,11 +136,24 @@ describe('BulkStatusDialog', () => {
       />
     )
 
-    const updateButton = screen.getByRole('button', { name: /update/i })
-    expect(updateButton).toBeDisabled()
+    fireEvent.click(screen.getByText(TICKET_STATUS.open))
+    fireEvent.click(screen.getByText('Update'))
+
+    // Check loading state
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Updating...' })).toBeDisabled()
+    })
+
+    // Resolve the update
+    resolveUpdate!()
+
+    // Check that loading state is cleared
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: 'Updating...' })).not.toBeInTheDocument()
+    })
   })
 
-  it('enables update button when status is selected', () => {
+  it('closes when cancel is clicked', () => {
     render(
       <BulkStatusDialog
         isOpen={true}
@@ -152,26 +163,7 @@ describe('BulkStatusDialog', () => {
       />
     )
 
-    const select = screen.getByRole('combobox')
-    fireEvent.change(select, { target: { value: 'in_progress' } })
-
-    const updateButton = screen.getByRole('button', { name: /update/i })
-    expect(updateButton).not.toBeDisabled()
-  })
-
-  it('closes dialog when cancel is clicked', () => {
-    render(
-      <BulkStatusDialog
-        isOpen={true}
-        onClose={mockOnClose}
-        ticketIds={mockTicketIds}
-        onUpdate={mockOnUpdate}
-      />
-    )
-
-    const cancelButton = screen.getByRole('button', { name: /cancel/i })
-    fireEvent.click(cancelButton)
-
+    fireEvent.click(screen.getByText('Cancel'))
     expect(mockOnClose).toHaveBeenCalled()
   })
 }) 

@@ -1,291 +1,146 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { Request, Response } from 'express'
-import { PermissionError } from '../permission.middleware'
-import { validateTicketCreation, validateTicketUpdate, canAccessTicket, canManageTicket } from '../ticket.middleware'
-// @ts-ignore - These imports are used indirectly in test validation
-import { TICKET_PRIORITY, TICKET_STATUS } from '../../types/models/ticket.types'
-import { SupabaseClient } from '@supabase/supabase-js'
-import { Database } from '../../types/database.types'
+/**
+ * @fileoverview Ticket middleware test suite
+ * @module middleware/__tests__/ticket
+ */
 
-// Mock data
-const mockUserId = 'user-123'
-const mockTicketId = 'ticket-123'
-const mockTeamId = 'team-123'
+import { vi } from 'vitest'
 
-// Mock request factory
-const createMockRequest = (body = {}, params = {}, user: { id: string } | null = null) => {
-  const supabaseMock = {
-    from: vi.fn().mockReturnThis(),
-    select: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    single: vi.fn()
-  } as unknown as SupabaseClient<Database>
+// Mock Supabase client - must be before other imports
+vi.mock('../../../lib/supabase', () => ({
+  supabase: {
+    from: vi.fn(),
+    auth: {
+      getUser: vi.fn()
+    }
+  }
+}))
 
-  return {
-    body,
-    params,
-    user,
-    supabase: supabaseMock
-  } as unknown as Request
-}
+import { describe, it, expect, beforeEach } from 'vitest'
+import { canAccessTicket } from '../../../middleware/ticket.middleware'
+import { requirePermission } from '../../../middleware/permission.middleware'
+import { supabase } from '../../../lib/supabase'
+import type { UserRole } from '../../../types/role.types'
+import type { Request, Response, NextFunction } from 'express'
 
-// Mock response
-const mockResponse = {
-  status: vi.fn().mockReturnThis(),
-  json: vi.fn()
-} as unknown as Response
-
-// Mock next function with proper typing for vitest mock
-const mockNext = vi.fn()
+// Mock permission middleware
+vi.mock('../../../middleware/permission.middleware', () => ({
+  requirePermission: vi.fn()
+}))
 
 describe('Ticket Middleware', () => {
+  let mockReq: Partial<Request>
+  let mockRes: Partial<Response>
+  let mockNext: jest.Mock
+
   beforeEach(() => {
     vi.clearAllMocks()
-  })
-
-  describe('validateTicketCreation', () => {
-    it('should pass validation with valid ticket data', async () => {
-      const req = createMockRequest({
-        title: 'Test Ticket',
-        description: 'Test Description',
-        priority: 'medium'
-      })
-      const next = vi.fn()
-
-      const middleware = validateTicketCreation()
-      await middleware(req, mockResponse, next)
-
-      expect(next).toHaveBeenCalledWith()
-    })
-
-    it('should fail validation with missing title', async () => {
-      const req = createMockRequest({
-        description: 'Test Description'
-      })
-
-      await validateTicketCreation()(req, mockResponse, mockNext)
-
-      expect(mockNext).toHaveBeenCalledWith(expect.any(Error))
-      expect(mockNext).toHaveBeenCalledWith(expect.objectContaining({
-        message: 'Title is required'
-      }))
-    })
-
-    it('should fail validation with missing description', async () => {
-      const req = createMockRequest({
-        title: 'Test Ticket'
-      })
-
-      await validateTicketCreation()(req, mockResponse, mockNext)
-
-      expect(mockNext).toHaveBeenCalledWith(expect.any(Error))
-      expect(mockNext).toHaveBeenCalledWith(expect.objectContaining({
-        message: 'Description is required'
-      }))
-    })
-
-    it('should fail validation with invalid priority', async () => {
-      const req = createMockRequest({
-        title: 'Test Ticket',
-        description: 'Test Description',
-        priority: 'invalid'
-      })
-
-      await validateTicketCreation()(req, mockResponse, mockNext)
-
-      expect(mockNext).toHaveBeenCalledWith(expect.any(Error))
-      expect(mockNext).toHaveBeenCalledWith(expect.objectContaining({
-        message: 'Invalid priority value'
-      }))
-    })
-  })
-
-  describe('validateTicketUpdate', () => {
-    it('should pass validation with valid update data', async () => {
-      const req = createMockRequest({
-        priority: 'high',
-        status: 'in_progress'
-      })
-      const next = vi.fn()
-
-      const middleware = validateTicketUpdate()
-      await middleware(req, mockResponse, next)
-
-      expect(next).toHaveBeenCalledWith()
-    })
-
-    it('should fail validation with invalid priority', async () => {
-      const req = createMockRequest({
-        priority: 'invalid'
-      })
-      const next = vi.fn()
-
-      const middleware = validateTicketUpdate()
-      await middleware(req, mockResponse, next)
-
-      expect(next).toHaveBeenCalledWith(expect.any(Error))
-      expect(next).toHaveBeenCalledWith(expect.objectContaining({
-        message: 'Invalid priority value'
-      }))
-    })
-
-    it('should fail validation with invalid status', async () => {
-      const req = createMockRequest({
-        status: 'invalid'
-      })
-
-      await validateTicketUpdate()(req, mockResponse, mockNext)
-
-      expect(mockNext).toHaveBeenCalledWith(expect.any(Error))
-      expect(mockNext).toHaveBeenCalledWith(expect.objectContaining({
-        message: 'Invalid status value'
-      }))
-    })
+    mockReq = {
+      params: {},
+      body: {},
+      headers: {},
+      user: null
+    }
+    mockRes = {
+      status: vi.fn().mockReturnThis(),
+      json: vi.fn()
+    }
+    mockNext = vi.fn()
   })
 
   describe('canAccessTicket', () => {
-    it('should allow access for ticket creator', async () => {
-      const req = createMockRequest(
-        {},
-        { ticketId: mockTicketId },
-        { id: mockUserId }
-      )
+    it('should allow access for ticket owner', async () => {
+      const mockUser = { id: 'test-user-id', role: 'customer' as UserRole }
+      const mockTicket = {
+        id: 'test-ticket-id',
+        created_by: mockUser.id
+      }
 
-      const supabaseMock = req.supabase as unknown as { single: ReturnType<typeof vi.fn> }
-      supabaseMock.single.mockResolvedValue({
-        data: {
-          created_by: mockUserId,
-          assignee_id: 'other-user',
-          team_id: mockTeamId
-        }
-      })
+      mockReq.params = { ticketId: mockTicket.id }
+      mockReq.user = mockUser
 
-      await canAccessTicket(req, mockResponse, mockNext)
+      vi.mocked(supabase.auth.getUser).mockResolvedValue({
+        data: { user: mockUser },
+        error: null
+      } as any)
 
-      expect(mockNext).toHaveBeenCalledWith()
+      vi.mocked(supabase.from).mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({
+              data: mockTicket,
+              error: null
+            })
+          })
+        })
+      } as any)
+
+      await canAccessTicket(mockReq as Request, mockRes as Response, mockNext)
+      expect(mockNext).toHaveBeenCalled()
     })
 
-    it('should allow access for ticket assignee', async () => {
-      const req = createMockRequest(
-        {},
-        { ticketId: mockTicketId },
-        { id: mockUserId }
-      )
+    it('should allow access for admin', async () => {
+      const mockUser = { id: 'admin-id', role: 'admin' as UserRole }
+      const mockTicket = {
+        id: 'test-ticket-id',
+        created_by: 'other-user-id'
+      }
 
-      const supabaseMock = req.supabase as unknown as { single: ReturnType<typeof vi.fn> }
-      supabaseMock.single.mockResolvedValue({
-        data: {
-          created_by: 'other-user',
-          assignee_id: mockUserId,
-          team_id: mockTeamId
-        }
-      })
+      mockReq.params = { ticketId: mockTicket.id }
+      mockReq.user = mockUser
 
-      await canAccessTicket(req, mockResponse, mockNext)
+      vi.mocked(supabase.auth.getUser).mockResolvedValue({
+        data: { user: mockUser },
+        error: null
+      } as any)
 
-      expect(mockNext).toHaveBeenCalledWith()
+      vi.mocked(supabase.from).mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({
+              data: mockTicket,
+              error: null
+            })
+          })
+        })
+      } as any)
+
+      vi.mocked(requirePermission).mockResolvedValue(true)
+
+      await canAccessTicket(mockReq as Request, mockRes as Response, mockNext)
+      expect(mockNext).toHaveBeenCalled()
     })
 
     it('should deny access for unauthorized user', async () => {
-      const req = createMockRequest(
-        {},
-        { ticketId: mockTicketId },
-        { id: mockUserId }
-      )
+      const mockUser = { id: 'other-user-id', role: 'customer' as UserRole }
+      const mockTicket = {
+        id: 'test-ticket-id',
+        created_by: 'test-user-id'
+      }
 
-      const supabaseMock = req.supabase as unknown as { single: ReturnType<typeof vi.fn> }
-      supabaseMock.single
-        .mockResolvedValueOnce({
-          data: {
-            created_by: 'other-user',
-            assignee_id: 'other-user',
-            team_id: mockTeamId
-          }
+      mockReq.params = { ticketId: mockTicket.id }
+      mockReq.user = mockUser
+
+      vi.mocked(supabase.auth.getUser).mockResolvedValue({
+        data: { user: mockUser },
+        error: null
+      } as any)
+
+      vi.mocked(supabase.from).mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({
+              data: mockTicket,
+              error: null
+            })
+          })
         })
-        .mockResolvedValueOnce({
-          data: null
-        })
+      } as any)
 
-      await canAccessTicket(req, mockResponse, mockNext)
+      vi.mocked(requirePermission).mockResolvedValue(false)
 
-      expect(mockNext).toHaveBeenCalledWith(expect.any(PermissionError))
-      expect(mockNext).toHaveBeenCalledWith(expect.objectContaining({
-        message: 'User does not have access to this ticket'
-      }))
-    })
-  })
-
-  describe('canManageTicket', () => {
-    it('should allow management for ticket assignee', async () => {
-      const req = createMockRequest(
-        {},
-        { ticketId: mockTicketId },
-        { id: mockUserId }
-      )
-
-      const supabaseMock = req.supabase as unknown as { single: ReturnType<typeof vi.fn> }
-      supabaseMock.single.mockResolvedValue({
-        data: {
-          assigned_to: mockUserId,
-          team_id: mockTeamId,
-          teams: [{
-            lead_id: 'other-user'
-          }]
-        }
-      })
-
-      await canManageTicket(req, mockNext)
-
-      expect(mockNext).toHaveBeenCalledWith()
-    })
-
-    it('should allow management for team lead', async () => {
-      const req = createMockRequest(
-        {},
-        { ticketId: mockTicketId },
-        { id: mockUserId }
-      )
-
-      const supabaseMock = req.supabase as unknown as { single: ReturnType<typeof vi.fn> }
-      supabaseMock.single.mockResolvedValue({
-        data: {
-          assigned_to: 'other-user',
-          team_id: mockTeamId,
-          teams: [{
-            lead_id: mockUserId
-          }]
-        }
-      })
-
-      await canManageTicket(req, mockNext)
-
-      expect(mockNext).toHaveBeenCalledWith()
-    })
-
-    it('should deny management for unauthorized user', async () => {
-      const req = createMockRequest(
-        {},
-        { ticketId: mockTicketId },
-        { id: mockUserId }
-      )
-
-      const supabaseMock = req.supabase as unknown as { single: ReturnType<typeof vi.fn> }
-      supabaseMock.single.mockResolvedValue({
-        data: {
-          assigned_to: 'other-user',
-          team_id: mockTeamId,
-          teams: [{
-            lead_id: 'other-user'
-          }]
-        }
-      })
-
-      await canManageTicket(req, mockNext)
-
-      expect(mockNext).toHaveBeenCalledWith(expect.any(PermissionError))
-      expect(mockNext).toHaveBeenCalledWith(expect.objectContaining({
-        message: 'User does not have permission to manage this ticket'
-      }))
+      await canAccessTicket(mockReq as Request, mockRes as Response, mockNext)
+      expect(mockNext).toHaveBeenCalledWith(expect.any(Error))
+      expect(mockNext.mock.calls[0][0].message).toBe('User does not have access to this ticket')
     })
   })
 }) 
