@@ -5,7 +5,6 @@
 
 import { Request, Response, NextFunction } from 'express'
 import { supabase } from '../lib/supabase'
-import type { CreateTeamDTO, UpdateTeamDTO } from '../types/models/team.types'
 
 export const teamMiddleware = {
   /**

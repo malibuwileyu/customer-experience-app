@@ -3,20 +3,14 @@
  * @module services/team
  */
 
-import { supabase, serviceClient } from "../lib/supabase"
-import type { 
+import { serviceClient } from "../lib/supabase"
+import type {
   Team,
   TeamMember,
   CreateTeamDTO,
   UpdateTeamDTO,
   AddTeamMemberDTO,
-  TeamRow,
-  TeamInsert,
-  TeamUpdate,
-  TeamMemberRow,
-  TeamMemberInsert
 } from '../types/models/team.types'
-import { User } from "@/types/models/user.types"
 
 export const teamService = {
   /**
@@ -46,7 +40,7 @@ export const teamService = {
 
     const { data: team, error } = await serviceClient
       .from("teams")
-      .insert(data as TeamInsert)
+      .insert(data)
       .select()
       .single()
 
@@ -178,7 +172,7 @@ export const teamService = {
   async updateTeam(id: string, data: UpdateTeamDTO): Promise<Team> {
     const { data: team, error } = await serviceClient
       .from("teams")
-      .update(data as TeamUpdate)
+      .update(data)
       .eq("id", id)
       .select()
       .single()
@@ -215,7 +209,7 @@ export const teamService = {
   async addTeamMember(data: AddTeamMemberDTO): Promise<TeamMember> {
     const { data: member, error } = await serviceClient
       .from("team_members")
-      .insert(data as TeamMemberInsert)
+      .insert(data)
       .select()
       .single()
 

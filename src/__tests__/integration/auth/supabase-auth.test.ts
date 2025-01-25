@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '../../../lib/supabase';
 
 describe('Supabase Auth Integration Tests', () => {
   // Test user credentials

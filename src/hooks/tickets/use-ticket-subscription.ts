@@ -10,7 +10,6 @@
 import { useEffect } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '../../lib/supabase'
-import { toast } from 'sonner'
 
 /**
  * Hook for subscribing to real-time ticket changes

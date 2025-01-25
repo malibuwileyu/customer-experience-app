@@ -17,7 +17,6 @@ import {
   FormLabel,
   FormMessage,
 } from "../../components/common/form"
-import type { UserRole } from "../../types/role.types"
 
 interface TeamRoleSelectorProps {
   value?: string

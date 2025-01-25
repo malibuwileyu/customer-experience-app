@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { createClient } from '@supabase/supabase-js';
-import type { Team } from '../../types/models/team.types';
+import type { Team } from '../../../types/models/team.types';
 import type { PostgrestError } from '@supabase/supabase-js';
 import { config } from 'dotenv';
 

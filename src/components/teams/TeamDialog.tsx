@@ -41,7 +41,6 @@ import { useUsers } from "../../hooks/users/use-users"
 import type { ControllerRenderProps } from "react-hook-form"
 import { roleManagementService } from "../../services/role-management.service"
 import { serviceClient } from "../../lib/supabase"
-import type { Database } from "../../types/database.types"
 
 // Form schema
 const teamFormSchema = z.object({

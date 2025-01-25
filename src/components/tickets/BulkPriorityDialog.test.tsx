@@ -1,4 +1,3 @@
-import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { BulkPriorityDialog } from './BulkPriorityDialog'
@@ -46,7 +45,7 @@ describe('BulkPriorityDialog', () => {
     expect(screen.getByRole('combobox')).toBeInTheDocument()
     
     // Verify all priority options are rendered
-    Object.entries(TICKET_PRIORITY).forEach(([key, value]) => {
+    Object.entries(TICKET_PRIORITY).forEach(([_, value]) => {
       expect(screen.getByText(value)).toBeInTheDocument()
     })
   })

@@ -22,8 +22,8 @@ vi.mock('../../lib/supabase', () => ({
 }))
 
 describe('Team Middleware', () => {
-  let mockReq: Partial<Request>
-  let mockRes: Partial<Response>
+  let mockReq: Request
+  let mockRes: Response
   let mockNext: NextFunction
 
   beforeEach(() => {
@@ -32,12 +32,12 @@ describe('Team Middleware', () => {
       params: {},
       headers: {},
       body: {}
-    }
+    } as Request
     mockRes = {
       status: vi.fn().mockReturnThis(),
-      json: vi.fn()
-    }
-    mockNext = vi.fn()
+      json: vi.fn(),
+    } as unknown as Response
+    mockNext = vi.fn() as unknown as NextFunction
   })
 
   describe('validateTeamAccess', () => {

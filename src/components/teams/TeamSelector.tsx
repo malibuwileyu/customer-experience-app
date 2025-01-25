@@ -26,7 +26,7 @@ export interface TeamSelectorProps {
 export function TeamSelector({ value, onChange, placeholder = 'Select a team...', disabled = false }: TeamSelectorProps) {
   const [teams, setTeams] = useState<Team[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const { user } = useAuth()
+  const { } = useAuth()
 
   useEffect(() => {
     const loadTeams = async () => {

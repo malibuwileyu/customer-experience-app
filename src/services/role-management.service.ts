@@ -61,20 +61,6 @@ export type CheckPermissionParams = {
 }
 
 /**
- * Response structure for role permission queries
- * 
- * @interface
- * @property {Object} permissions - Permission details from the database
- */
-interface RolePermissionResponse {
-  permissions: {
-    id: string
-    name: string
-    description: string | null
-  }
-}
-
-/**
  * Service for managing user roles and permissions
  * 
  * Features:

@@ -3,7 +3,7 @@
  * @module components/teams/TeamMemberList
  */
 
-import { Avatar, AvatarFallback, AvatarImage } from "../../components/common/avatar"
+import { Avatar, AvatarFallback } from "../../components/common/avatar"
 import { Badge } from "../../components/common/badge"
 import { TeamMember } from "../../types/models/team.types"
 

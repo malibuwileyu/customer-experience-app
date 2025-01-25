@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterEach } from 'vitest';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '../../../lib/supabase';
 
 describe('Supabase Auth Integration', () => {
   beforeAll(async () => {

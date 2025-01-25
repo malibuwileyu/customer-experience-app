@@ -1,4 +1,3 @@
-import React from 'react'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { BulkStatusDialog } from './BulkStatusDialog'
@@ -46,7 +45,7 @@ describe('BulkStatusDialog', () => {
     expect(screen.getByRole('combobox')).toBeInTheDocument()
     
     // Verify all status options are rendered
-    Object.entries(TICKET_STATUS).forEach(([key, value]) => {
+    Object.entries(TICKET_STATUS).forEach(([_, value]) => {
       expect(screen.getByText(value)).toBeInTheDocument()
     })
   })
