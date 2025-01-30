@@ -1,67 +1,51 @@
-# Build Issues Report
+# Build Issues Summary
 
-## TypeScript Errors (2024-01-31)
+Total: 9 errors across 5 files (reduced from 16 errors)
 
-### Module Resolution Issues
-1. Cannot find module '../../lib/supabase':
-   - src/__tests__/integration/auth/auth.test.ts
-   - src/__tests__/integration/auth/supabase-auth.test.ts
+## Critical Issues by Category
 
-2. Cannot find module '../../types/models/team.types':
-   - src/__tests__/integration/features/team-management.test.ts
+### 1. Type Mismatches
+- **Article Detail** (`src/components/kb/ArticleDetail.tsx`)
+  - Type mismatch in article ID handling
+  - Impact: Low - Article view count updates affected
 
-### Unused Imports
-1. src/components/teams/TeamDialog.tsx:
-   - Unused import: 'Database'
+## Detailed Breakdown by File
 
-2. src/components/teams/TeamMemberList.tsx:
-   - Unused import: 'AvatarImage'
+### Component Files
+1. `ArticleDetail.tsx` (3 errors)
+   - Type mismatch in article ID handling
+   - Unused imports: `useParams`
+   - Unused function: `handleViewCountUpdate`
 
-3. src/components/teams/TeamRoleSelector.tsx:
-   - Unused import: 'UserRole'
+### Test Files
+1. `SearchResults.test.tsx` (1 error)
+   - Unused `mockCategories` declaration
 
-4. src/components/teams/TeamSelector.tsx:
-   - Unused variable: 'user'
+2. `knowledge-base-category.service.test.ts` (2 errors)
+   - Unused type import
+   - Type mismatch in category creation test
 
-5. src/components/tickets/BulkPriorityDialog.test.tsx:
-   - Unused import: 'React'
-   - Unused variable: 'key'
+3. `20240201_create_knowledge_base_tables.test.ts` (2 errors)
+   - Unused imports: `afterAll`
+   - Unused variable: `supabase`
 
-6. src/components/tickets/BulkStatusDialog.test.tsx:
-   - Unused import: 'React'
-   - Unused variable: 'key'
+### Service Files
+1. `knowledge-base-category.service.ts` (1 error)
+   - Unused `supabase` property in constructor
 
-7. src/hooks/tickets/use-ticket-subscription.ts:
-   - Unused import: 'toast'
+## Required Actions
 
-8. src/middleware/team.middleware.ts:
-   - Unused imports: 'CreateTeamDTO', 'UpdateTeamDTO'
+### High Priority
+1. Fix article detail type mismatches and unused code
 
-9. src/pages/tickets/TicketsPage.tsx:
-   - Unused imports: 'Card', 'CardHeader', 'CardTitle', 'CardDescription'
+### Low Priority
+1. Clean up remaining test file issues
+2. Remove unused service constructor property
 
-10. src/services/team.service.ts:
-    - Unused import: 'supabase'
-    - Unused type: 'TeamRow'
-    - Unused type: 'TeamMemberRow'
-    - Unused import: 'User'
-
-### Type Errors
-1. src/middleware/__tests__/team.middleware.test.ts:
-   - Type mismatch in NextFunction mock
-   
-2. src/services/role-management.service.ts:
-   - Unused interface: 'RolePermissionResponse'
-
-## Action Items
-1. Fix module resolution for supabase and team types imports
-2. Remove or use all unused imports
-3. Fix type mismatch in team middleware test
-4. Remove or use unused interfaces and types
-
-All TypeScript errors have been resolved. The build is now completing successfully.
-
-Note: There is a warning about chunk sizes being larger than 500 kB after minification. This is a performance optimization concern that can be addressed in the future by:
-- Using dynamic imports for code splitting
-- Configuring manual chunks in rollup options
-- Adjusting the chunk size warning limit 
+## Progress Tracking
+- [x] Initial build error documentation
+- [x] Fix Ticket List component
+- [x] Update CategoryManager types
+- [x] Fix permission middleware
+- [ ] Fix article detail type issues
+- [ ] Clean up test files 

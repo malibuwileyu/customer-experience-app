@@ -13,7 +13,7 @@ import {
 } from "../common/select"
 import { Team } from "../../types/models/team.types"
 import { teamService } from "../../services/team.service"
-import { useAuth } from "../../hooks/auth/use-auth"
+import { useAuth } from "../../contexts/AuthContext"
 import { toast } from 'sonner'
 
 export interface TeamSelectorProps {

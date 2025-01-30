@@ -6,7 +6,6 @@
     "module": "ESNext",
     "skipLibCheck": true,
     "moduleResolution": "node",
-    "allowSyntheticDefaultImports": true,
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
@@ -16,9 +15,13 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
+    "allowSyntheticDefaultImports": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"],
+      "@langchain/core/*": ["node_modules/@langchain/core/dist/*"],
+      "@langchain/openai": ["node_modules/@langchain/openai/dist"],
+      "@langchain/community/*": ["node_modules/@langchain/community/dist/*"]
     },
     "types": ["vitest/globals", "vite/client", "node"],
     "forceConsistentCasingInFileNames": true

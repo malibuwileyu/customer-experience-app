@@ -3,7 +3,7 @@
  * @module services/ticket
  */
 
-import { supabase, serviceClient } from "../lib/supabase"
+import { supabase, supabaseService } from "../lib/supabase"
 import type { 
   CreateTicketDTO,
   UpdateTicketDTO,
@@ -51,8 +51,8 @@ export const ticketService = {
   async getTicket(id: string): Promise<Ticket> {
     console.log('Fetching ticket with ID:', id);
     
-    // Use serviceClient to bypass RLS and properly handle single row
-    const { data, error } = await serviceClient
+    // Use supabaseService to bypass RLS and properly handle single row
+    const { data, error } = await supabaseService
       .from('tickets')
       .select('*')
       .eq('id', id)
@@ -83,8 +83,8 @@ export const ticketService = {
   async getAllTickets(): Promise<PaginatedResponse<Ticket>> {
     console.log('getAllTickets: Fetching all tickets without filtering')
     
-    // Use serviceClient to bypass RLS
-    const { data, error, count } = await serviceClient
+    // Use supabaseService to bypass RLS
+    const { data, error, count } = await supabaseService
       .from('tickets')
       .select('*', { count: 'exact' })
       .order('created_at', { ascending: false })
@@ -332,8 +332,8 @@ export const ticketService = {
       throw new Error('Only admins can delete tickets')
     }
 
-    // Use serviceClient to bypass RLS since we've verified admin status
-    const { error } = await serviceClient
+    // Use supabaseService to bypass RLS since we've verified admin status
+    const { error } = await supabaseService
       .from('tickets')
       .delete()
       .eq('id', id)
@@ -356,8 +356,8 @@ export const ticketService = {
       throw new Error('Only admins can delete tickets')
     }
 
-    // Use serviceClient to bypass RLS since we've verified admin status
-    const { error } = await serviceClient
+    // Use supabaseService to bypass RLS since we've verified admin status
+    const { error } = await supabaseService
       .from('tickets')
       .delete()
       .in('id', ids)
@@ -437,7 +437,7 @@ export const ticketService = {
 
     // If teamId is null, we're removing the team assignment
     if (teamId === null) {
-      const { data, error } = await serviceClient
+      const { data, error } = await supabaseService
         .from("tickets")
         .update({ team_id: null })
         .eq("id", ticketId)
@@ -450,7 +450,7 @@ export const ticketService = {
     }
 
     // Get the team details
-    const { data: team, error: teamError } = await serviceClient
+    const { data: team, error: teamError } = await supabaseService
       .from("teams")
       .select()
       .eq("id", teamId)
@@ -460,7 +460,7 @@ export const ticketService = {
     if (!team) throw new Error("Team not found")
 
     // Get user's role from profiles
-    const { data: profile, error: profileError } = await serviceClient
+    const { data: profile, error: profileError } = await supabaseService
       .from("profiles")
       .select("role")
       .eq("id", user.id)
@@ -478,7 +478,7 @@ export const ticketService = {
     }
 
     // Update the ticket with the new team
-    const { data, error } = await serviceClient
+    const { data, error } = await supabaseService
       .from("tickets")
       .update({ team_id: teamId })
       .eq("id", ticketId)
@@ -539,8 +539,8 @@ export const ticketService = {
       throw new Error('Only agents and admins can change ticket priority')
     }
 
-    // Use serviceClient to update all tickets at once
-    const { error } = await serviceClient
+    // Use supabaseService to update all tickets at once
+    const { error } = await supabaseService
       .from('tickets')
       .update({ priority, updated_at: new Date().toISOString() })
       .in('id', ids)

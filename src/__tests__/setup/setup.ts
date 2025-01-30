@@ -64,46 +64,39 @@ const pointerCaptureMock = {
 }
 
 // Mock MessageEvent
-class MessageEventMock extends Event {
-  data: any = null;
-  origin: string = '';
-  lastEventId: string = '';
-  source: MessageEventSource | null = null;
-  ports: ReadonlyArray<MessagePort> = [];
+class MessageEventMock extends Event implements MessageEvent {
+  data: any;
+  origin: string;
+  lastEventId: string;
+  source: any;
+  ports: any[];
 
-  constructor(type: string, init?: MessageEventInit) {
-    super(type, { ...init, bubbles: init?.bubbles ?? false, cancelable: init?.cancelable ?? false })
+  constructor(type: string, init: any = {}) {
+    super(type, { bubbles: init.bubbles ?? false, cancelable: init.cancelable ?? false });
     
-    // Get property descriptors from Event.prototype
-    const eventProto = Object.getPrototypeOf(new Event(type))
-    const propertyDescriptors = Object.getOwnPropertyDescriptors(eventProto)
+    // Set up the prototype chain after super() call
+    Object.setPrototypeOf(this, MessageEvent.prototype);
+    
+    this.data = init.data ?? null;
+    this.origin = init.origin ?? '';
+    this.lastEventId = init.lastEventId ?? '';
+    this.source = init.source ?? null;
+    this.ports = init.ports ?? [];
+  }
 
-    // Define properties with proper descriptors
-    Object.defineProperties(this, {
-      ...propertyDescriptors,
-      data: { value: init?.data ?? null, configurable: true },
-      origin: { value: init?.origin ?? '', configurable: true },
-      lastEventId: { value: init?.lastEventId ?? '', configurable: true },
-      source: { value: init?.source ?? null, configurable: true },
-      ports: { value: init?.ports ?? [], configurable: true }
-    })
-
-    // Ensure instanceof checks work correctly
-    Object.setPrototypeOf(this, MessageEventMock.prototype)
+  initMessageEvent(type: string, bubbles?: boolean, cancelable?: boolean, data?: any, origin?: string, lastEventId?: string, source?: any, ports?: any[]): void {
+    this.data = data ?? null;
+    this.origin = origin ?? '';
+    this.lastEventId = lastEventId ?? '';
+    this.source = source ?? null;
+    this.ports = ports ?? [];
   }
 }
 
-// Mock MessageEvent globally
-Object.defineProperty(window, 'MessageEvent', {
-  value: MessageEventMock,
-  writable: true,
-  configurable: true
-});
-
 // Mock BroadcastChannel
 class BroadcastChannelMock extends EventTarget {
-  private name: string;
-  private static channels: Map<string, BroadcastChannelMock[]> = new Map();
+  static channels = new Map<string, BroadcastChannelMock[]>();
+  name: string;
 
   constructor(name: string) {
     super();
@@ -113,18 +106,18 @@ class BroadcastChannelMock extends EventTarget {
     BroadcastChannelMock.channels.set(name, channels);
   }
 
-  postMessage(message: any) {
+  postMessage(data: any) {
     const channels = BroadcastChannelMock.channels.get(this.name) || [];
-    const messageEvent = new MessageEventMock('message', {
-      data: message,
-      origin: window.location.origin,
-      lastEventId: '',
-      source: null,
-      ports: []
-    });
     channels.forEach(channel => {
       if (channel !== this) {
-        channel.dispatchEvent(messageEvent);
+        const event = new MessageEvent('message', {
+          data,
+          origin: '',
+          ports: [],
+          source: null,
+          lastEventId: ''
+        });
+        channel.dispatchEvent(event);
       }
     });
   }
@@ -142,16 +135,29 @@ class BroadcastChannelMock extends EventTarget {
 }
 
 // Mock BroadcastChannel globally
-global.BroadcastChannel = BroadcastChannelMock as any;
+Object.defineProperty(global, 'BroadcastChannel', {
+  value: BroadcastChannelMock,
+  writable: true,
+  configurable: true
+});
+
+// Ensure MessageEvent prototype chain is set up correctly
+Object.setPrototypeOf(MessageEvent.prototype, Event.prototype);
+
+Object.defineProperty(global, 'MessageEvent', {
+  value: MessageEventMock,
+  writable: true,
+  configurable: true
+});
 
 // Mock user-event specific events
 Object.defineProperty(window, 'PointerEvent', {
   value: class PointerEvent extends Event {
     constructor(type: string, init?: PointerEventInit) {
-      super(type, init)
+      super(type, init);
       // Get property descriptors from Event.prototype
-      const eventProto = Object.getPrototypeOf(new Event(type))
-      const propertyDescriptors = Object.getOwnPropertyDescriptors(eventProto)
+      const eventProto = Object.getPrototypeOf(new Event(type));
+      const propertyDescriptors = Object.getOwnPropertyDescriptors(eventProto);
 
       // Define properties with proper descriptors
       Object.defineProperties(this, {
@@ -161,18 +167,18 @@ Object.defineProperty(window, 'PointerEvent', {
         pointerId: { value: init?.pointerId ?? 1, configurable: true },
         pressure: { value: init?.pressure ?? 0, configurable: true },
         pointerType: { value: init?.pointerType ?? 'mouse', configurable: true }
-      })
+      });
     }
   }
-})
+});
 
 Object.defineProperty(window, 'MouseEvent', {
   value: class MouseEvent extends Event {
     constructor(type: string, init?: MouseEventInit) {
-      super(type, init)
+      super(type, init);
       // Get property descriptors from Event.prototype
-      const eventProto = Object.getPrototypeOf(new Event(type))
-      const propertyDescriptors = Object.getOwnPropertyDescriptors(eventProto)
+      const eventProto = Object.getPrototypeOf(new Event(type));
+      const propertyDescriptors = Object.getOwnPropertyDescriptors(eventProto);
 
       // Define properties with proper descriptors
       Object.defineProperties(this, {
@@ -181,18 +187,18 @@ Object.defineProperty(window, 'MouseEvent', {
         clientY: { value: init?.clientY ?? 0, configurable: true },
         button: { value: init?.button ?? 0, configurable: true },
         buttons: { value: init?.buttons ?? 0, configurable: true }
-      })
+      });
     }
   }
-})
+});
 
 Object.defineProperty(window, 'KeyboardEvent', {
   value: class KeyboardEvent extends Event {
     constructor(type: string, init?: KeyboardEventInit) {
-      super(type, init)
+      super(type, init);
       // Get property descriptors from Event.prototype
-      const eventProto = Object.getPrototypeOf(new Event(type))
-      const propertyDescriptors = Object.getOwnPropertyDescriptors(eventProto)
+      const eventProto = Object.getPrototypeOf(new Event(type));
+      const propertyDescriptors = Object.getOwnPropertyDescriptors(eventProto);
 
       // Define properties with proper descriptors
       Object.defineProperties(this, {
@@ -202,17 +208,17 @@ Object.defineProperty(window, 'KeyboardEvent', {
         location: { value: init?.location ?? 0, configurable: true },
         repeat: { value: init?.repeat ?? false, configurable: true },
         isComposing: { value: init?.isComposing ?? false, configurable: true }
-      })
+      });
     }
   }
-})
+});
 
 // Add mocks to global
-vi.stubGlobal('ResizeObserver', ResizeObserverMock)
-vi.stubGlobal('MessageEvent', MessageEventMock)
+vi.stubGlobal('ResizeObserver', ResizeObserverMock);
+vi.stubGlobal('MessageEvent', MessageEventMock);
 
 Object.defineProperties(window.HTMLElement.prototype, {
   hasPointerCapture: { value: pointerCaptureMock.hasPointerCapture },
   setPointerCapture: { value: pointerCaptureMock.setPointerCapture },
   releasePointerCapture: { value: pointerCaptureMock.releasePointerCapture },
-}) 
+}); 

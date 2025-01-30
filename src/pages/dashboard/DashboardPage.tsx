@@ -1,35 +1,58 @@
-import { Button } from '../../components/common/button';
-import { Input } from '../../components/common/input';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../../components/common/card';
-import { FormInput } from '../../components/common/form-input';
-import { FormSelect } from '../../components/common/form-select';
-import { FormTextarea } from '../../components/common/form-textarea';
-import { Spinner } from '../../components/common/spinner';
-import { Skeleton } from '../../components/common/skeleton';
-import { LoadingOverlay } from '../../components/common/loading-overlay';
-import { ErrorBoundary } from '../../components/common/error-boundary';
-import { BuggyCounter } from '../../components/common/buggy-counter';
-import { Dialog, DialogContent, DialogTrigger } from '../../components/common/dialog';
-import { CreateTicketForm } from '../../components/tickets/create-ticket-form';
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useState } from 'react'
+import { Link } from 'react-router-dom'
+import { useForm } from 'react-hook-form'
+import {
+  Button,
+  Input,
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormControl,
+  FormMessage,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Textarea,
+  Spinner,
+  Skeleton,
+  LoadingOverlay,
+  ErrorBoundary,
+  Dialog,
+  DialogContent,
+  DialogTrigger
+} from '../../components/common'
+import { CreateTicketForm } from '../../components/tickets/create-ticket-form'
+import { ArticleSearch } from '../../components/kb'
 
 export function DashboardPage() {
   const [showForms, setShowForms] = useState(false);
   const [showLoading, setShowLoading] = useState(false);
   const [showError, setShowError] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  const form = useForm()
 
   const handleLoadingDemo = () => {
     setIsLoading(true);
     setTimeout(() => setIsLoading(false), 2000);
   };
 
-  const handleError = (error: Error, errorInfo: React.ErrorInfo) => {
-    console.group('Dashboard Error Handler')
-    console.error('Error caught:', error.message)
-    console.error('Component stack:', errorInfo.componentStack)
-    console.groupEnd()
+  const handleCategoryChange = (categoryId: string | null) => {
+    setSelectedCategory(categoryId);
+  };
+
+  const handleSearch = (term: string) => {
+    // No-op for now since we removed search term state
+    console.log('Search term:', term);
   };
 
   return (
@@ -54,7 +77,9 @@ export function DashboardPage() {
             <Button variant="outline" className="w-full" asChild>
               <Link to="/app/user-tickets">My Tickets</Link>
             </Button>
-            <Button variant="outline" className="w-full">View Knowledge Base</Button>
+            <Button variant="outline" className="w-full" asChild>
+              <Link to="/app/kb">View Knowledge Base</Link>
+            </Button>
           </CardContent>
         </Card>
 
@@ -64,8 +89,18 @@ export function DashboardPage() {
             <CardDescription>Find tickets or articles</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Input placeholder="Search..." />
-            <Button variant="secondary" className="w-full">Search</Button>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="secondary" className="w-full">Search Knowledge Base</Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[800px]">
+                <ArticleSearch 
+                  onSearch={handleSearch}
+                  onCategoryChange={handleCategoryChange}
+                  selectedCategory={selectedCategory}
+                />
+              </DialogContent>
+            </Dialog>
           </CardContent>
         </Card>
 
@@ -114,40 +149,55 @@ export function DashboardPage() {
               <CardDescription>Examples of available form components</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <FormInput
-                name="title"
-                label="Title"
-                placeholder="Brief summary of the issue"
-                description="A clear and concise title helps us understand your issue quickly."
+              <FormField
+                control={form.control}
+                name="input"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Input Field</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Type something..." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
 
-              <FormInput
-                name="description"
-                label="Description"
-                placeholder="Detailed description of the issue"
-                required
-                error="Description is required"
+              <FormField
+                control={form.control}
+                name="select"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Select Field</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select an option" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="option1">Option 1</SelectItem>
+                        <SelectItem value="option2">Option 2</SelectItem>
+                        <SelectItem value="option3">Option 3</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
 
-              <FormSelect
-                name="priority"
-                label="Priority"
-                description="Select the priority level for this ticket"
-                options={[
-                  { label: "Select priority...", value: "", disabled: true },
-                  { label: "Low", value: "low" },
-                  { label: "Medium", value: "medium" },
-                  { label: "High", value: "high" },
-                  { label: "Urgent", value: "urgent" }
-                ]}
-              />
-
-              <FormTextarea
-                name="notes"
-                label="Internal Notes"
-                placeholder="Add any internal notes about this ticket"
-                description="These notes are only visible to support staff"
-                rows={4}
+              <FormField
+                control={form.control}
+                name="textarea"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Textarea Field</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Type something..." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </CardContent>
           </Card>
@@ -159,51 +209,33 @@ export function DashboardPage() {
           <Card>
             <CardHeader>
               <CardTitle>Loading Components</CardTitle>
-              <CardDescription>Examples of available loading states</CardDescription>
+              <CardDescription>Examples of loading states</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-8">
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Spinners</h3>
-                <div className="flex items-center gap-4">
-                  <Spinner size="sm" />
-                  <Spinner />
-                  <Spinner size="lg" />
-                  <Spinner variant="secondary" />
-                </div>
+            <CardContent className="space-y-6">
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-[250px]" />
+                <Skeleton className="h-4 w-[200px]" />
               </div>
 
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Skeletons</h3>
-                <div className="space-y-4">
-                  <Skeleton variant="title" />
-                  <Skeleton variant="text" />
-                  <Skeleton variant="text" className="w-3/4" />
-                  <Skeleton variant="card" />
-                </div>
+              <div className="relative h-[100px] w-full">
+                <LoadingOverlay />
               </div>
 
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Loading Overlay</h3>
-                <div className="space-y-4">
-                  <Button onClick={handleLoadingDemo}>
-                    Toggle Loading Overlay
-                  </Button>
-                  <LoadingOverlay isLoading={isLoading}>
-                    <Card>
-                      <CardHeader>
-                        <CardTitle>Content Example</CardTitle>
-                        <CardDescription>This content will be blurred when loading</CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm text-muted-foreground">
-                          Click the button above to see the loading overlay in action.
-                          The content will be blurred and a spinner will appear.
-                        </p>
-                      </CardContent>
-                    </Card>
-                  </LoadingOverlay>
-                </div>
+              <div className="flex items-center gap-2">
+                <Spinner />
+                <span>Loading...</span>
               </div>
+
+              <Button onClick={handleLoadingDemo} disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Spinner className="mr-2" />
+                    Loading...
+                  </>
+                ) : (
+                  'Click to Load'
+                )}
+              </Button>
             </CardContent>
           </Card>
         </div>
@@ -213,21 +245,17 @@ export function DashboardPage() {
         <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
-              <CardTitle>Error Boundary Demo</CardTitle>
-              <CardDescription>Example of error handling with Error Boundaries</CardDescription>
+              <CardTitle>Error Components</CardTitle>
+              <CardDescription>Examples of error states</CardDescription>
             </CardHeader>
-            <CardContent>
-              <ErrorBoundary
-                description="This is a demo of how error boundaries catch and handle React errors"
-                onError={handleError}
-                onReset={() => console.log('Error boundary was reset')}
-              >
-                <BuggyCounter />
+            <CardContent className="space-y-6">
+              <ErrorBoundary>
+                <div>Error Boundary Content</div>
               </ErrorBoundary>
             </CardContent>
           </Card>
         </div>
       )}
     </div>
-  );
+  )
 } 

@@ -7,10 +7,12 @@ import { TicketFilters } from "./components/ticket-filters"
 import { Dialog, DialogContent, DialogTrigger } from "@/components/common/dialog"
 import { CreateTicketForm } from "@/components/tickets/create-ticket-form"
 import { useAuth } from "@/contexts/AuthContext"
+import { useTickets } from "@/hooks/tickets/use-tickets"
 
 export default function TicketsPage() {
   const { user } = useAuth()
   const isAdminOrAgent = user?.role === 'admin' || user?.role === 'agent'
+  const { tickets, totalCount, isLoading, error } = useTickets()
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -31,7 +33,12 @@ export default function TicketsPage() {
 
       <div className="flex flex-col space-y-8">
         {!isAdminOrAgent && <TicketFilters />}
-        <TicketList />
+        <TicketList 
+          tickets={tickets} 
+          totalCount={totalCount} 
+          isLoading={isLoading} 
+          error={error} 
+        />
       </div>
     </div>
   )

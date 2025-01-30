@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { roleManagementService, serviceClient } from '../../services/role-management.service';
+import { roleManagementService } from '../../services/role-management.service';
+import { supabaseService } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { toast } from 'sonner';
 import {
   Card,
   CardHeader,
@@ -48,14 +50,14 @@ export function RoleManagementPage() {
     queryFn: async () => {
       console.log('Fetching users...');
       // First get all users using service client
-      const { data: users, error: usersError } = await serviceClient.auth.admin.listUsers()
+      const { data: users, error: usersError } = await supabaseService.auth.admin.listUsers()
       if (usersError) {
         console.error('Error fetching users:', usersError);
         throw usersError;
       }
 
       // Then get their roles from profiles
-      const { data: profiles, error: profilesError } = await serviceClient
+      const { data: profiles, error: profilesError } = await supabaseService
         .from('profiles')
         .select('id, role')
 
@@ -80,6 +82,7 @@ export function RoleManagementPage() {
     try {
       console.log('Updating role...', { userId, newRole });
       setIsUpdating(userId);
+      toast.loading('Updating role...');
 
       await roleManagementService.assignRole({
         userId,
@@ -88,11 +91,14 @@ export function RoleManagementPage() {
       });
 
       console.log('Role updated successfully');
+      toast.success('Role updated successfully');
       await refetch();
     } catch (error) {
       console.error('Failed to update role:', error);
+      toast.error('Failed to update role. Please try again.');
     } finally {
       setIsUpdating(null);
+      toast.dismiss();
     }
   };
 

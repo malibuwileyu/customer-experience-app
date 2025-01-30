@@ -2,13 +2,13 @@
  * @fileoverview Supabase client configuration and initialization
  * @module lib/supabase
  * @description
- * Configures and exports a strongly-typed Supabase client instance with authentication
+ * Configures and exports strongly-typed Supabase client instances with authentication
  * and request settings. Uses environment variables for configuration and includes
  * type safety through database type definitions.
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { Database } from '../types/database.types';
+import { Database } from '../types/supabase';
 
 /**
  * Required environment variables for Supabase configuration
@@ -23,76 +23,22 @@ if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
 }
 
 /**
- * Configured Supabase client instance
- * 
- * Features:
- * - Strong typing with Database type
- * - Persistent session management
- * - Automatic token refresh
- * - PKCE auth flow for enhanced security
- * - Custom client info header
- * 
- * @example
- * ```typescript
- * // Querying with type safety
- * const { data, error } = await supabase
- *   .from('users')
- *   .select('*')
- *   .eq('id', userId);
- * 
- * // Authentication
- * const { data: { session }, error } = await supabase.auth.getSession();
- * ```
+ * Regular Supabase client instance for client-side operations
  */
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
-    persistSession: true, // Keep user logged in between page refreshes
-    storageKey: 'app-auth', // Key for storing auth data in localStorage
-    storage: window.localStorage, // Use localStorage for session persistence
-    autoRefreshToken: true, // Automatically refresh auth tokens
-    detectSessionInUrl: true, // Handle auth redirects automatically
-    flowType: 'pkce', // Use PKCE flow for enhanced security
-  },
-  db: {
-    schema: 'public'
-  },
-  global: {
-    headers: {
-      'X-Client-Info': 'customer-experience-app', // Identify client in requests
-    }
-  },
+    autoRefreshToken: true,
+    persistSession: true
+  }
 });
 
 /**
- * Service client with admin privileges
- * Used for operations that need to bypass RLS policies
- * 
- * Features:
- * - Strong typing with Database type
- * - No session persistence
- * - No token refresh
- * - Service role key for admin access
- * 
- * @example
- * ```typescript
- * // Admin operations bypassing RLS
- * const { data, error } = await serviceClient
- *   .from('users')
- *   .select('*');
- * ```
+ * Service-level Supabase client instance for privileged operations
+ * This client bypasses RLS and should only be used for service-level operations
  */
-export const serviceClient = createClient<Database>(supabaseUrl, supabaseServiceKey, {
+export const supabaseService = createClient<Database>(supabaseUrl, supabaseServiceKey, {
   auth: {
     autoRefreshToken: false,
-    persistSession: false,
-    detectSessionInUrl: false
-  },
-  db: {
-    schema: 'public'
-  },
-  global: {
-    headers: {
-      'X-Client-Info': 'customer-experience-app',
-    }
-  },
+    persistSession: false
+  }
 }); 

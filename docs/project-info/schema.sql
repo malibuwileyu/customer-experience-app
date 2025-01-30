@@ -115,9 +115,13 @@ CREATE TABLE IF NOT EXISTS categories (
   name TEXT NOT NULL,
   description TEXT,
   parent_id UUID REFERENCES categories(id),
+  display_order INTEGER DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Create index for category ordering
+CREATE INDEX IF NOT EXISTS idx_categories_display_order ON categories(display_order);
 
 -- Create tickets table
 CREATE TABLE IF NOT EXISTS tickets (
@@ -601,3 +605,168 @@ USING (
     AND role = 'admin'
   )
 );
+
+-- Function to update category order
+CREATE OR REPLACE FUNCTION update_category_order(
+  p_category_id UUID,
+  p_old_order INTEGER,
+  p_new_order INTEGER
+) RETURNS void AS $$
+BEGIN
+  -- Moving up in the list (smaller number)
+  IF p_new_order < p_old_order THEN
+    UPDATE categories
+    SET display_order = display_order + 1
+    WHERE display_order >= p_new_order
+    AND display_order < p_old_order
+    AND id != p_category_id;
+  
+  -- Moving down in the list (larger number)
+  ELSIF p_new_order > p_old_order THEN
+    UPDATE categories
+    SET display_order = display_order - 1
+    WHERE display_order <= p_new_order
+    AND display_order > p_old_order
+    AND id != p_category_id;
+  END IF;
+
+  -- Update the target category's order
+  UPDATE categories
+  SET display_order = p_new_order
+  WHERE id = p_category_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create kb_articles table
+CREATE TABLE kb_articles (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  category_id UUID REFERENCES kb_categories(id),
+  author_id UUID REFERENCES auth.users(id),
+  status TEXT NOT NULL DEFAULT 'draft',
+  metadata JSONB DEFAULT '{}'::JSONB,
+  created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+  search_vector tsvector GENERATED ALWAYS AS (
+    setweight(to_tsvector('english', coalesce(title, '')), 'A') ||
+    setweight(to_tsvector('english', coalesce(content, '')), 'B')
+  ) STORED
+);
+
+-- Create kb_article_versions table for version history
+CREATE TABLE kb_article_versions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  article_id UUID REFERENCES kb_articles(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  version INTEGER NOT NULL,
+  metadata JSONB DEFAULT '{}'::JSONB,
+  created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(article_id, version)
+);
+
+-- Create indexes
+CREATE INDEX idx_kb_articles_search_vector ON kb_articles USING gin(search_vector);
+CREATE INDEX idx_kb_articles_metadata ON kb_articles USING gin(metadata);
+CREATE INDEX idx_kb_article_versions_metadata ON kb_article_versions USING gin(metadata);
+CREATE INDEX idx_kb_article_versions_article_version ON kb_article_versions(article_id, version);
+
+-- Create function to update kb_article metadata
+CREATE OR REPLACE FUNCTION update_kb_article_metadata()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- If metadata is null, initialize it
+  IF NEW.metadata IS NULL THEN
+    NEW.metadata := '{}'::JSONB;
+  END IF;
+
+  -- Update metadata timestamps
+  NEW.metadata := NEW.metadata || jsonb_build_object(
+    'last_modified_at', CURRENT_TIMESTAMP,
+    'last_modified_by', (SELECT auth.uid())
+  );
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Create function to update kb_article_versions metadata
+CREATE OR REPLACE FUNCTION update_kb_article_version_metadata()
+RETURNS TRIGGER AS $$
+BEGIN
+  -- If metadata is null, initialize it
+  IF NEW.metadata IS NULL THEN
+    NEW.metadata := '{}'::JSONB;
+  END IF;
+
+  -- Update metadata timestamps
+  NEW.metadata := NEW.metadata || jsonb_build_object(
+    'created_at', COALESCE(NEW.metadata->>'created_at', CURRENT_TIMESTAMP::text),
+    'created_by', COALESCE(NEW.metadata->>'created_by', (SELECT auth.uid())::text),
+    'last_modified_at', CURRENT_TIMESTAMP,
+    'last_modified_by', (SELECT auth.uid())
+  );
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Create triggers for metadata updates
+DROP TRIGGER IF EXISTS trigger_update_kb_article_metadata ON kb_articles;
+CREATE TRIGGER trigger_update_kb_article_metadata
+  BEFORE INSERT OR UPDATE ON kb_articles
+  FOR EACH ROW
+  EXECUTE FUNCTION update_kb_article_metadata();
+
+DROP TRIGGER IF EXISTS trigger_update_kb_article_version_metadata ON kb_article_versions;
+CREATE TRIGGER trigger_update_kb_article_version_metadata
+  BEFORE INSERT OR UPDATE ON kb_article_versions
+  FOR EACH ROW
+  EXECUTE FUNCTION update_kb_article_version_metadata();
+
+-- Create search function
+CREATE OR REPLACE FUNCTION search_kb_articles(
+  search_query TEXT,
+  category_filter UUID DEFAULT NULL,
+  metadata_filter JSONB DEFAULT NULL
+)
+RETURNS TABLE (
+  id UUID,
+  title TEXT,
+  content TEXT,
+  category_id UUID,
+  author_id UUID,
+  status TEXT,
+  metadata JSONB,
+  search_rank FLOAT4
+) AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    a.id,
+    a.title,
+    a.content,
+    a.category_id,
+    a.author_id,
+    a.status,
+    a.metadata,
+    ts_rank(search_vector, websearch_to_tsquery('english', search_query)) as search_rank
+  FROM kb_articles a
+  WHERE
+    (search_query IS NULL OR search_vector @@ websearch_to_tsquery('english', search_query))
+    AND (category_filter IS NULL OR category_id = category_filter)
+    AND (metadata_filter IS NULL OR metadata @> metadata_filter)
+    AND (
+      status = 'published'
+      OR author_id = auth.uid()
+      OR EXISTS (
+        SELECT 1 FROM profiles
+        WHERE profiles.id = auth.uid()
+        AND role IN ('admin', 'agent', 'team_lead')
+      )
+    )
+  ORDER BY search_rank DESC, updated_at DESC;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;

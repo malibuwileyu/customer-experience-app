@@ -7,32 +7,9 @@
  * using Supabase as the backend.
  */
 
-import { supabase } from "../lib/supabase"
-import { createClient } from '@supabase/supabase-js'
+import { supabaseService } from '../lib/supabase'
 import type { UserRole, Permission, RoleAuditLog } from "../types/role.types"
 import type { Database } from "../types/database.types"
-
-/**
- * Required environment variables for role management service
- * Uses service role client for admin operations that bypass RLS
- */
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
-const SUPABASE_SERVICE_KEY = import.meta.env.VITE_SUPABASE_SERVICE_KEY
-
-if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-  throw new Error('Missing required environment variables for role management')
-}
-
-/**
- * Supabase client with service role for admin operations
- * This client bypasses RLS policies for role management operations
- */
-export const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
-  }
-})
 
 /**
  * Parameters for assigning a role to a user
@@ -96,7 +73,7 @@ export const roleManagementService = {
    * @throws {Error} If there's an error fetching the role
    */
   async getUserRole(userId: string): Promise<UserRole | null> {
-    const { data, error } = await serviceClient
+    const { data, error } = await supabaseService
       .from('profiles')
       .select('role')
       .eq('id', userId)
@@ -121,7 +98,7 @@ export const roleManagementService = {
     console.log('Role management service: assigning role', { userId, role, performedBy });
 
     // Get current role using service client
-    const { data: oldRole } = await serviceClient
+    const { data: oldRole } = await supabaseService
       .from('profiles')
       .select('role')
       .eq('id', userId)
@@ -130,7 +107,7 @@ export const roleManagementService = {
     console.log('Current role:', oldRole);
 
     // Update role using service client
-    const { error: roleError } = await serviceClient
+    const { error: roleError } = await supabaseService
       .from('profiles')
       .update({ role: role as Database['public']['Enums']['user_role'] })
       .eq('id', userId)
@@ -143,7 +120,7 @@ export const roleManagementService = {
     console.log('Role updated, logging change');
 
     // Log the role change using service client
-    const { error: logError } = await serviceClient
+    const { error: logError } = await supabaseService
       .from('role_audit_log')
       .insert({
         user_id: userId,
@@ -175,7 +152,7 @@ export const roleManagementService = {
    * @throws {Error} If there's an error removing the role or logging the change
    */
   async removeRole(userId: string, performedBy: string): Promise<{ success: boolean }> {
-    const { data: oldRole } = await serviceClient
+    const { data: oldRole } = await supabaseService
       .from('profiles')
       .select('role')
       .eq('id', userId)
@@ -184,7 +161,7 @@ export const roleManagementService = {
     if (!oldRole) return { success: true }
 
     // Set role back to customer
-    const { error: roleError } = await serviceClient
+    const { error: roleError } = await supabaseService
       .from('profiles')
       .update({ role: 'customer' as Database['public']['Enums']['user_role'] })
       .eq('id', userId)
@@ -192,7 +169,7 @@ export const roleManagementService = {
     if (roleError) throw roleError
 
     // Log the role removal using service client to bypass RLS
-    const { error: logError } = await serviceClient
+    const { error: logError } = await supabaseService
       .from('role_audit_log')
       .insert({
         user_id: userId,
@@ -219,7 +196,7 @@ export const roleManagementService = {
    * @throws {Error} If there's an error checking the permission
    */
   async checkPermission({ userId, permission }: CheckPermissionParams): Promise<boolean> {
-    const { data, error } = await supabase.rpc('check_user_permission', {
+    const { data, error } = await supabaseService.rpc('check_user_permission', {
       user_id: userId,
       permission_name: permission
     })
@@ -248,7 +225,7 @@ export const roleManagementService = {
       };
     };
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseService
       .from('role_permissions')
       .select(`
         permissions (
@@ -292,7 +269,7 @@ export const roleManagementService = {
       created_at: string;
     };
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseService
       .from('role_audit_log')
       .select('*')
       .eq('user_id', userId)

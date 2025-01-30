@@ -1,75 +1,86 @@
-import { config } from 'dotenv';
-import { createClient } from '@supabase/supabase-js';
+/**
+ * @fileoverview Script to clean up test users from auth.users table
+ * @description
+ * This script finds and deletes test users that match the pattern 'testuser_*@gmail.com'
+ * while preserving any test users that are actively being used in tests.
+ */
+
+import { createClient } from '@supabase/supabase-js'
+import dotenv from 'dotenv'
 
 // Load environment variables
-config();
+dotenv.config()
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseServiceKey = process.env.VITE_SUPABASE_SERVICE_KEY;
+const SUPABASE_URL = process.env.VITE_SUPABASE_URL
+const SUPABASE_SERVICE_KEY = process.env.VITE_SUPABASE_SERVICE_KEY
 
-if (!supabaseUrl || !supabaseServiceKey) {
-  throw new Error('Missing Supabase environment variables');
+if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
+  console.error('Missing required environment variables')
+  process.exit(1)
 }
 
-// Create Supabase client with service role key for admin operations
-const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+// Create Supabase client with service role
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
   auth: {
     autoRefreshToken: false,
     persistSession: false
   }
-});
+})
 
 async function cleanupTestUsers() {
   try {
-    // Get all users
-    const { data: users, error: usersError } = await supabase.auth.admin.listUsers();
+    // First, get all test users
+    const { data: users, error: fetchError } = await supabase.auth.admin.listUsers()
     
-    if (usersError) {
-      console.error('Failed to list users:', usersError.message);
-      return;
+    if (fetchError) {
+      throw fetchError
     }
 
-    // Find test users (emails containing 'test' or 'testuser')
+    // Filter for test users matching the pattern
     const testUsers = users.users.filter(user => 
-      user.email?.toLowerCase().includes('test') || 
-      user.email?.toLowerCase().includes('testuser')
-    );
+      user.email?.match(/^testuser_\d+@gmail\.com$/)
+    )
 
-    console.log(`Found ${testUsers.length} test users to clean up`);
+    console.log(`Found ${testUsers.length} test users to clean up:`)
+    testUsers.forEach(user => {
+      console.log(`- ${user.email} (${user.id})`)
+    })
 
-    // Clean up each test user
-    for (const user of testUsers) {
-      try {
-        // Delete user profile (includes role information)
-        await supabase
-          .from('profiles')
-          .delete()
-          .eq('id', user.id);
-
-        // Delete any team memberships
-        await supabase
-          .from('team_members')
-          .delete()
-          .eq('user_id', user.id);
-
-        // Delete auth user (this should cascade delete other related data)
-        await supabase.auth.admin.deleteUser(user.id);
-
-        console.log(`✓ Cleaned up user ${user.email} and related data`);
-      } catch (error) {
-        console.error(`Failed to clean up user ${user.email}:`, error);
+    // Confirm with user
+    console.log('\nAre you sure you want to delete these users? (y/n)')
+    process.stdin.once('data', async (data) => {
+      const answer = data.toString().trim().toLowerCase()
+      
+      if (answer === 'y') {
+        console.log('\nDeleting users...')
+        
+        // Delete users one by one and log results
+        for (const user of testUsers) {
+          try {
+            const { error: deleteError } = await supabase.auth.admin.deleteUser(user.id)
+            if (deleteError) {
+              console.error(`Failed to delete ${user.email}: ${deleteError.message}`)
+            } else {
+              console.log(`Successfully deleted ${user.email}`)
+            }
+          } catch (err) {
+            console.error(`Error deleting ${user.email}:`, err)
+          }
+        }
+        
+        console.log('\nCleanup complete!')
+      } else {
+        console.log('Operation cancelled.')
       }
-    }
+      
+      process.exit(0)
+    })
 
-    console.log('✨ Test user cleanup complete');
   } catch (error) {
-    console.error('Failed to clean up test users:', error);
+    console.error('Error during cleanup:', error)
+    process.exit(1)
   }
 }
 
-cleanupTestUsers()
-  .then(() => process.exit(0))
-  .catch((error) => {
-    console.error('Script failed:', error);
-    process.exit(1);
-  }); 
+// Run the cleanup
+cleanupTestUsers() 

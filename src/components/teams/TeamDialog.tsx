@@ -40,7 +40,7 @@ import { teamService } from "../../services/team.service"
 import { useUsers } from "../../hooks/users/use-users"
 import type { ControllerRenderProps } from "react-hook-form"
 import { roleManagementService } from "../../services/role-management.service"
-import { serviceClient } from "../../lib/supabase"
+import { supabaseService } from "../../lib/supabase"
 
 // Form schema
 const teamFormSchema = z.object({
@@ -76,7 +76,7 @@ export function TeamDialog({ team, onSuccess, trigger }: TeamDialogProps) {
     if (open) {
       const loadExistingLeads = async () => {
         try {
-          const { data: teams, error } = await serviceClient
+          const { data: teams, error } = await supabaseService
             .from("teams")
             .select("lead_id");
           

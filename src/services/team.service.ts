@@ -3,7 +3,7 @@
  * @module services/team
  */
 
-import { serviceClient } from "../lib/supabase"
+import { supabase, supabaseService } from "../lib/supabase"
 import type {
   Team,
   TeamMember,
@@ -23,7 +23,7 @@ export const teamService = {
    */
   async createTeam(data: CreateTeamDTO): Promise<Team> {
     // First check if the user is already a team lead
-    const { data: existingTeam, error: checkError } = await serviceClient
+    const { data: existingTeam, error: checkError } = await supabaseService
       .from("teams")
       .select()
       .eq("lead_id", data.lead_id)
@@ -38,7 +38,7 @@ export const teamService = {
       throw new Error('The selected user is already a team lead for another team');
     }
 
-    const { data: team, error } = await serviceClient
+    const { data: team, error } = await supabaseService
       .from("teams")
       .insert(data)
       .select()
@@ -65,7 +65,7 @@ export const teamService = {
    * @returns {Promise<boolean>} Whether the user is already a team lead
    */
   async isUserTeamLead(userId: string): Promise<boolean> {
-    const { data, error } = await serviceClient
+    const { data, error } = await supabaseService
       .from("teams")
       .select()
       .eq("lead_id", userId)
@@ -87,7 +87,7 @@ export const teamService = {
    * @throws {Error} If fetch fails
    */
   async getTeams(): Promise<Team[]> {
-    const { data: teams, error } = await serviceClient
+    const { data: teams, error } = await supabaseService
       .from("teams")
       .select()
       .order("created_at", { ascending: false })
@@ -108,7 +108,7 @@ export const teamService = {
    * @throws {Error} If team not found or fetch fails
    */
   async getTeam(id: string): Promise<Team> {
-    const { data: team, error } = await serviceClient
+    const { data: team, error } = await supabaseService
       .from("teams")
       .select()
       .eq("id", id)
@@ -120,7 +120,7 @@ export const teamService = {
     }
 
     // Get team members separately
-    const { data: members, error: membersError } = await serviceClient
+    const { data: members, error: membersError } = await supabaseService
       .from("team_members")
       .select()
       .eq("team_id", id)
@@ -138,7 +138,7 @@ export const teamService = {
     }
 
     // Get user profiles for all members
-    const { data: profiles, error: profilesError } = await serviceClient
+    const { data: profiles, error: profilesError } = await supabaseService
       .from("profiles")
       .select("id, full_name, email, role")
       .in("id", members.map(m => m.user_id))
@@ -170,7 +170,7 @@ export const teamService = {
    * @throws {Error} If update fails
    */
   async updateTeam(id: string, data: UpdateTeamDTO): Promise<Team> {
-    const { data: team, error } = await serviceClient
+    const { data: team, error } = await supabaseService
       .from("teams")
       .update(data)
       .eq("id", id)
@@ -190,7 +190,7 @@ export const teamService = {
    * @throws {Error} If deletion fails
    */
   async deleteTeam(id: string): Promise<void> {
-    const { error } = await serviceClient
+    const { error } = await supabaseService
       .from("teams")
       .delete()
       .eq("id", id)
@@ -207,7 +207,7 @@ export const teamService = {
    * @throws {Error} If member addition fails
    */
   async addTeamMember(data: AddTeamMemberDTO): Promise<TeamMember> {
-    const { data: member, error } = await serviceClient
+    const { data: member, error } = await supabaseService
       .from("team_members")
       .insert(data)
       .select()
@@ -240,7 +240,7 @@ export const teamService = {
    * @throws {Error} If member removal fails
    */
   async removeTeamMember(teamId: string, userId: string): Promise<void> {
-    const { error } = await serviceClient
+    const { error } = await supabaseService
       .from("team_members")
       .delete()
       .eq("team_id", teamId)
@@ -259,7 +259,7 @@ export const teamService = {
    */
   async getTeamMembers(teamId: string): Promise<TeamMember[]> {
     // First get team members
-    const { data: members, error } = await serviceClient
+    const { data: members, error } = await supabaseService
       .from("team_members")
       .select()
       .eq("team_id", teamId)
@@ -272,7 +272,7 @@ export const teamService = {
     if (!members?.length) return [];
 
     // Then get user profiles for each member
-    const { data: profiles, error: profilesError } = await serviceClient
+    const { data: profiles, error: profilesError } = await supabaseService
       .from("profiles")
       .select("id, full_name, email, role")
       .in("id", members.map(m => m.user_id))

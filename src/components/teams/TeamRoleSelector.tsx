@@ -3,7 +3,7 @@
  * @module components/teams/TeamRoleSelector
  */
 
-import { useAuth } from "../../hooks/auth/use-auth"
+import { useAuth } from "../../contexts/AuthContext"
 import {
   Select,
   SelectContent,

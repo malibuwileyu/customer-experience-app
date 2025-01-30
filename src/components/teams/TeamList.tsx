@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from "react"
 import { useToast } from "../../hooks/use-toast"
-import { useAuth } from "../../hooks/auth/use-auth"
+import { useAuth } from "../../contexts/AuthContext"
 import type { Team, TeamMember } from "../../types/models/team.types"
 import { teamService } from "../../services/team.service"
 import { TeamCard } from "./TeamCard"

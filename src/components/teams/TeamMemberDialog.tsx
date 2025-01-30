@@ -37,7 +37,7 @@ import { Team } from "../../types/models/team.types"
 import { teamService } from "../../services/team.service"
 import { useUsers } from "../../hooks/users/use-users"
 import { TeamRoleSelector } from "./TeamRoleSelector"
-import { serviceClient } from "../../lib/supabase"
+import { supabaseService } from "../../lib/supabase"
 
 // Form schema
 const memberFormSchema = z.object({
@@ -84,7 +84,7 @@ export function TeamMemberDialog({ team, onSuccess, trigger }: TeamMemberDialogP
     if (open) {
       const loadExistingLeads = async () => {
         try {
-          const { data: teams, error } = await serviceClient
+          const { data: teams, error } = await supabaseService
             .from("teams")
             .select("lead_id");
           

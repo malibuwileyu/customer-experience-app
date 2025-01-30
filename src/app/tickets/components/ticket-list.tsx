@@ -1,52 +1,44 @@
 "use client"
 
-import { useRouter } from "next/navigation"
-import { TicketCard } from "./ticket-card"
-import { Skeleton } from "@/components/common/skeleton"
-import { useAllTickets } from "@/hooks/tickets/use-all-tickets"
-import { useTickets } from "@/hooks/tickets/use-tickets"
-import { useAuth } from "@/contexts/AuthContext"
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../../../components/common'
+import { Alert, AlertDescription } from '../../../components/common/alert'
+import { AlertCircle } from 'lucide-react'
+import type { Ticket } from '../../../types/models/ticket.types'
 
-export function TicketList() {
-  const router = useRouter()
-  const { user } = useAuth()
-  console.log('Auth user data:', user)
-  
-  const isAdminOrAgent = user?.role === 'admin' || user?.role === 'agent'
-  console.log('Role check in TicketList:', { 
-    userRole: user?.role,
-    isAdminOrAgent,
-    usingHook: isAdminOrAgent ? 'useAllTickets' : 'useTickets'
-  })
+interface TicketListProps {
+  tickets: Ticket[]
+  totalCount: number
+  isLoading: boolean
+  error: Error | null
+}
 
-  // Only fetch the appropriate tickets based on user role
-  const {
-    tickets,
-    isLoading,
-  } = isAdminOrAgent 
-    ? useAllTickets()
-    : useTickets({ filters: {} })
-
+export function TicketList({ tickets, totalCount, isLoading, error }: TicketListProps) {
   if (isLoading) {
     return (
       <div className="space-y-4">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Skeleton key={i} className="h-32 w-full rounded-lg" />
-        ))}
+        <div>Loading...</div>
       </div>
     )
   }
 
-  if (!tickets?.length) {
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>
+          {error.message || 'Failed to load tickets'}
+        </AlertDescription>
+      </Alert>
+    )
+  }
+
+  if (!tickets.length) {
     return (
       <div className="flex h-[400px] items-center justify-center rounded-lg border border-dashed">
         <div className="text-center">
           <h3 className="text-lg font-medium">No tickets found</h3>
           <p className="text-sm text-muted-foreground">
-            {isAdminOrAgent 
-              ? "No tickets in the system yet"
-              : "Try adjusting your filters or create a new ticket"
-            }
+            Try adjusting your filters or create a new ticket
           </p>
         </div>
       </div>
@@ -55,13 +47,24 @@ export function TicketList() {
 
   return (
     <div className="space-y-4">
-      {tickets.map(ticket => (
-        <TicketCard
-          key={ticket.id}
-          ticket={ticket}
-          onClick={() => router.push(`/app/tickets/${ticket.id}`)}
-        />
-      ))}
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Tickets ({totalCount})</h2>
+      </div>
+      <div className="grid gap-4">
+        {tickets.map(ticket => (
+          <Card key={ticket.id}>
+            <CardHeader>
+              <CardTitle>{ticket.title}</CardTitle>
+              <CardDescription>
+                Created on {new Date(ticket.created_at).toLocaleDateString()}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">{ticket.description}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   )
 } 

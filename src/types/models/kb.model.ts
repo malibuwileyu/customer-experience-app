@@ -54,8 +54,7 @@ export interface Category {
  * @property {string} category_id - Associated category ID
  * @property {ArticleStatus} status - Current article status
  * @property {ArticleVisibility} visibility - Article visibility level
- * @property {string[]} tags - Article tags
- * @property {string} created_by - User ID who created the article
+ * @property {string} author_id - User ID who created the article
  * @property {string | null} last_updated_by - User ID who last updated the article
  * @property {Profile} author - User who created the article
  * @property {Profile | null} editor - User who last updated the article
@@ -74,8 +73,7 @@ export interface Article {
   category_id: string;
   status: ArticleStatus;
   visibility: ArticleVisibility;
-  tags: string[];
-  created_by: string;
+  author_id: string;
   last_updated_by: string | null;
   author: Profile;
   editor: Profile | null;

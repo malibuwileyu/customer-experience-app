@@ -29,7 +29,7 @@ import { CommentList } from "./comment-list"
 import { TicketAttachments } from './ticket-attachments'
 import { toast } from 'sonner'
 import { TeamSelector } from '../teams/TeamSelector'
-import { useAuth } from '../../hooks/auth/use-auth'
+import { useAuth } from '../../contexts/AuthContext'
 
 /**
  * Props for the TicketDetails component

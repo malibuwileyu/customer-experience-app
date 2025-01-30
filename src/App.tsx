@@ -10,7 +10,7 @@
  */
 
 import React from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { MainLayout } from './components/layout/MainLayout';
 import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { TicketsPage } from './pages/tickets/TicketsPage';
@@ -32,6 +32,10 @@ import { TeamList } from './components/teams/TeamList'
 import { CreateTeamPage } from './pages/teams/CreateTeamPage'
 import TeamsPage from './pages/teams/TeamsPage'
 import { TeamDetailsPage } from './pages/teams/TeamDetailsPage'
+import { KnowledgeBasePage } from './pages/kb/KnowledgeBasePage'
+import { SupabaseProvider } from './lib/supabase/context'
+import { ArticleDetailPage } from './pages/kb/ArticleDetailPage'
+import { OutreachPage } from './pages/outreach/OutreachPage'
 
 // Create a client
 const queryClient = new QueryClient();
@@ -69,6 +73,12 @@ function AuthCallback() {
 function HomeRoute() {
   const { user } = useAuth();
   const { roles, isLoading } = useUserRoles(user?.id);
+  const location = useLocation();
+
+  // Only apply redirects if we're on the root path
+  if (location.pathname !== '/') {
+    return null;
+  }
 
   // Show loading state while checking roles
   if (isLoading) {
@@ -112,74 +122,83 @@ function HomeRoute() {
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <Router>
-          <Routes>
-            {/* Public routes */}
-            <Route path="/" element={<HomeRoute />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegistrationPage />} />
-            <Route path="/unauthorized" element={<UnauthorizedPage />} />
-            
-            {/* Auth routes */}
-            <Route path="/auth/callback" element={<AuthCallback />} />
-            
-            {/* Protected routes */}
-            <Route path="/app" element={
-              <ProtectedRoute>
-                <MainLayout />
-              </ProtectedRoute>
-            }>
-              <Route index element={<Navigate to="/app/dashboard" replace />} />
-              <Route path="dashboard" element={<DashboardPage />} />
-              <Route path="user-tickets" element={<ProtectedRoute><UserTicketsPage /></ProtectedRoute>} />
-              <Route path="user-tickets/:id" element={<ProtectedRoute><UserTicketDetails /></ProtectedRoute>} />
+      <SupabaseProvider>
+        <AuthProvider>
+          <Router>
+            <Routes>
+              {/* Public routes */}
+              <Route path="/" element={<HomeRoute />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegistrationPage />} />
+              <Route path="/unauthorized" element={<UnauthorizedPage />} />
               
-              {/* Role-protected routes */}
-              <Route path="tickets" element={<ProtectedRoute requiredRoles={['admin', 'agent']}><TicketsPage /></ProtectedRoute>} />
-              <Route path="tickets/:id" element={<ProtectedRoute requiredRoles={['admin', 'agent']}><TicketDetails /></ProtectedRoute>} />
+              {/* Auth routes */}
+              <Route path="/auth/callback" element={<AuthCallback />} />
               
-              <Route path="teams" element={<ProtectedRoute requiredRoles={['admin', 'team_lead']}><TeamList /></ProtectedRoute>} />
-              <Route path="teams/new" element={<ProtectedRoute requiredRoles={['admin', 'team_lead']}><CreateTeamPage /></ProtectedRoute>} />
-              
-              <Route path="admin">
-                <Route path="dashboard" element={
-                  <ProtectedRoute requiredRoles={['admin']}>
-                    <AdminDashboardPage />
-                  </ProtectedRoute>
-                } />
-                <Route path="roles" element={
-                  <ProtectedRoute requiredRoles={['admin']}>
-                    <RoleManagementPage />
-                  </ProtectedRoute>
-                } />
+              {/* Protected routes */}
+              <Route path="/app" element={
+                <ProtectedRoute>
+                  <MainLayout />
+                </ProtectedRoute>
+              }>
+                <Route index element={<Navigate to="/app/dashboard" replace />} />
+                <Route path="dashboard" element={<DashboardPage />} />
+                <Route path="kb">
+                  <Route index element={<KnowledgeBasePage />} />
+                  <Route path="articles/:id" element={<ArticleDetailPage />} />
+                </Route>
+                <Route path="user-tickets" element={<ProtectedRoute><UserTicketsPage /></ProtectedRoute>} />
+                <Route path="user-tickets/:id" element={<ProtectedRoute><UserTicketDetails /></ProtectedRoute>} />
+                
+                {/* Role-protected routes */}
+                <Route path="tickets" element={<ProtectedRoute requiredRoles={['admin', 'agent']}><TicketsPage /></ProtectedRoute>} />
+                <Route path="tickets/:id" element={<ProtectedRoute requiredRoles={['admin', 'agent']}><TicketDetails /></ProtectedRoute>} />
+                
+                <Route path="teams" element={<ProtectedRoute requiredRoles={['admin', 'team_lead']}><TeamList /></ProtectedRoute>} />
+                <Route path="teams/new" element={<ProtectedRoute requiredRoles={['admin', 'team_lead']}><CreateTeamPage /></ProtectedRoute>} />
+                
+                {/* Add outreach route */}
+                <Route path="outreach" element={<OutreachPage />} />
+                
+                <Route path="admin">
+                  <Route path="dashboard" element={
+                    <ProtectedRoute requiredRoles={['admin']}>
+                      <AdminDashboardPage />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="roles" element={
+                    <ProtectedRoute requiredRoles={['admin']}>
+                      <RoleManagementPage />
+                    </ProtectedRoute>
+                  } />
+                </Route>
+
+                {/* Teams */}
+                <Route
+                  path="/app/teams"
+                  element={
+                    <ProtectedRoute requiredRoles={["admin", "agent", "team_lead"]}>
+                      <TeamsPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/app/teams/:id"
+                  element={
+                    <ProtectedRoute requiredRoles={["admin", "agent", "team_lead"]}>
+                      <TeamDetailsPage />
+                    </ProtectedRoute>
+                  }
+                />
               </Route>
 
-              {/* Teams */}
-              <Route
-                path="/app/teams"
-                element={
-                  <ProtectedRoute requiredRoles={["admin", "agent", "team_lead"]}>
-                    <TeamsPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/app/teams/:id"
-                element={
-                  <ProtectedRoute requiredRoles={["admin", "agent", "team_lead"]}>
-                    <TeamDetailsPage />
-                  </ProtectedRoute>
-                }
-              />
-            </Route>
-
-            {/* Catch-all redirect */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Router>
-        <ToastProvider />
-      </AuthProvider>
+              {/* Catch-all redirect */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Router>
+          <ToastProvider />
+        </AuthProvider>
+      </SupabaseProvider>
     </QueryClientProvider>
   );
 } 

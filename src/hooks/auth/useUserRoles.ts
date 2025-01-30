@@ -63,41 +63,40 @@ export function useUserRoles(userId?: string): UseUserRolesResult {
   const { data: roles, isLoading, error } = useQuery({
     queryKey: ['user-roles', userId],
     queryFn: async () => {
-      console.log('Fetching roles for user:', userId);
+      // console.error('[DEBUG] Fetching roles for user:', userId);
       if (!userId) return [];
 
+      // Fetch the user's role from profiles table
       const { data, error } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', userId)
         .maybeSingle();
 
-      console.log('Role fetch result:', { data, error });
+      // console.error('[DEBUG] Role fetch result:', { data, error });
 
       if (error) {
-        console.error('Error fetching roles:', error);
+        // console.error('[DEBUG] Error fetching roles:', error);
         throw error;
       }
 
-      // Since role is now a single value in profiles, wrap it in an array
-      const mappedRoles = data?.role ? [data.role] : [];
-      console.log('Mapped roles:', mappedRoles);
-      return mappedRoles;
+      // Return role as a single-element array if it exists
+      return data?.role ? [data.role] : [];
     },
-    enabled: !!userId, // Only run query if userId is provided
-    staleTime: 5 * 60 * 1000, // Consider data fresh for 5 minutes
-    gcTime: 30 * 60 * 1000, // Keep in cache for 30 minutes
-    retry: 2, // Retry failed requests twice
-    refetchOnMount: true, // Changed to true to ensure roles are fetched
-    refetchOnWindowFocus: true, // Changed to true to keep roles up to date
+    enabled: !!userId,
+    staleTime: 1000 * 60, // Cache for 1 minute
+    retry: 2,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
-  console.log('useUserRoles hook result:', {
-    userId,
-    roles,
-    isLoading,
-    error
-  });
+  // Log the final result
+  // console.error('[DEBUG] useUserRoles final result:', {
+  //   userId,
+  //   roles,
+  //   isLoading,
+  //   error
+  // });
 
   return {
     roles: roles || [],

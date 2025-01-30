@@ -1,212 +1,125 @@
-import { supabase } from '@/lib/supabase'
-import { createClient } from '@supabase/supabase-js'
+import { supabaseService } from '../../lib/supabase'
+import type { Database } from '../../types/database.types'
 import { UserRole } from '@/types/role.types'
 
-// Get Supabase URL from the regular client
-const SUPABASE_URL = process.env.VITE_SUPABASE_URL
-const SUPABASE_SERVICE_KEY = process.env.VITE_SUPABASE_SERVICE_KEY
-
-if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
-  throw new Error('Missing required environment variables for test setup')
-}
-
-// Create a service role client for test setup
-const serviceClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
-  auth: {
-    autoRefreshToken: false,
-    persistSession: false
-  }
-})
-
-// Generate unique test user emails
-const timestamp = Date.now()
-const TEST_USER_DATA = {
+// Test user constants
+const TEST_USERS = {
   admin: {
-    email: `testuser_admin_${timestamp}@example.com`,
-    password: 'Test123!@#',
+    email: 'admin@test.com',
+    password: 'test123!',
     role: 'admin' as UserRole
   },
   agent: {
-    email: `testuser_agent_${timestamp}@example.com`,
-    password: 'Test123!@#',
+    email: 'agent@test.com',
+    password: 'test123!',
     role: 'agent' as UserRole
   },
   customer: {
-    email: `testuser_customer_${timestamp}@example.com`,
-    password: 'Test123!@#',
+    email: 'customer@test.com',
+    password: 'test123!',
     role: 'customer' as UserRole
   }
 }
 
-// This will be populated during setup
-export let TEST_USERS: Record<keyof typeof TEST_USER_DATA, typeof TEST_USER_DATA[keyof typeof TEST_USER_DATA] & { id: string }> = {} as any
-
-const REQUIRED_PERMISSIONS = [
-  'view:tickets',
-  'create:tickets',
-  'manage:roles',
-  'manage:users',
-  'view:kb'
-]
-
-/**
- * Sets up test users in the database if they don't exist
- */
 export async function setupTestUsers() {
   try {
-    // Check for existing test users first
-    const { data: existingUsers, error: listError } = await serviceClient.auth.admin.listUsers()
+    // List existing users
+    const { data: existingUsers, error: listError } = await supabaseService.auth.admin.listUsers()
     if (listError) throw listError
 
-    // Create test users
-    for (const [key, userData] of Object.entries(TEST_USER_DATA)) {
-      try {
-        // Check if user with this email already exists
-        const existingUser = existingUsers.users.find(u => u.email === userData.email)
-
-        let userId: string
-
-        if (existingUser) {
-          console.log(`Using existing test user ${userData.email}`)
-          userId = existingUser.id
-          
-          // Store user data
-          TEST_USERS[key as keyof typeof TEST_USER_DATA] = {
-            ...userData,
-            id: existingUser.id
-          }
-        } else {
-          // Create new user
-          const { data: authData, error: createError } = await serviceClient.auth.admin.createUser({
-            email: userData.email,
-            password: userData.password,
-            email_confirm: true
-          })
-
-          if (createError) {
-            console.error(`Failed to create user ${userData.email}:`, createError)
-            throw createError
-          }
-
-          // Verify user was created
-          if (!authData?.user) {
-            throw new Error(`Failed to create user ${userData.email}`)
-          }
-
-          userId = authData.user.id
-          console.log(`Created new test user ${userData.email}`)
-
-          // Store user data
-          TEST_USERS[key as keyof typeof TEST_USER_DATA] = {
-            ...userData,
-            id: authData.user.id
-          }
-        }
-
-        // Check for existing profile
-        const { data: existingProfile } = await serviceClient
-          .from('profiles')
-          .select('role')
-          .eq('id', userId)
-          .single()
-
-        if (!existingProfile) {
-          // Create profile with role
-          const { error: profileError } = await serviceClient
-            .from('profiles')
-            .insert({
-              id: userId,
-              email: userData.email,
-              role: userData.role
-            })
-
-          if (profileError) throw profileError
-        }
-      } catch (error) {
-        console.error(`Error setting up user ${userData.email}:`, error)
-        throw error
+    // Delete existing test users
+    for (const user of existingUsers.users) {
+      if (user.email && Object.values(TEST_USERS).some(testUser => testUser.email === user.email)) {
+        await supabaseService.auth.admin.deleteUser(user.id)
       }
     }
 
-    // Get existing permissions
-    const { data: permissions, error: permError } = await serviceClient
-      .from('permissions')
-      .select('id, name, description')
-      .in('name', REQUIRED_PERMISSIONS)
+    // Create test users
+    for (const [key, userData] of Object.entries(TEST_USERS)) {
+      // Create user
+      const { data: authData, error: createError } = await supabaseService.auth.admin.createUser({
+        email: userData.email,
+        password: userData.password,
+        email_confirm: true
+      })
+      if (createError) throw createError
 
-    if (permError) throw permError
-    if (!permissions) throw new Error('Failed to get permissions')
+      const userId = authData.user.id
 
-    // Clean up existing role permissions for test roles
-    await serviceClient
-      .from('role_permissions')
-      .delete()
-      .in('role', Object.values(TEST_USER_DATA).map(u => u.role))
+      // Check for existing profile
+      const { data: existingProfile } = await supabaseService
+        .from('profiles')
+        .select()
+        .eq('id', userId)
+        .single()
 
-    // Define role permissions
-    const rolePermissions = {
-      admin: permissions.map(p => p.id), // Admin has all permissions
-      agent: permissions
-        .filter(p => ['view:tickets', 'create:tickets'].includes(p.name))
-        .map(p => p.id),
-      customer: permissions
-        .filter(p => ['view:tickets', 'create:tickets', 'view:kb'].includes(p.name))
-        .map(p => p.id)
-    }
+      // Create profile if it doesn't exist
+      if (!existingProfile) {
+        const { error: profileError } = await supabaseService
+          .from('profiles')
+          .insert({
+            id: userId,
+            email: userData.email,
+            full_name: `Test ${key.charAt(0).toUpperCase() + key.slice(1)}`,
+            role: userData.role
+          })
+        if (profileError) throw profileError
+      }
 
-    // Assign role permissions using service client
-    for (const [role, permissionIds] of Object.entries(rolePermissions)) {
-      if (permissionIds.length > 0) {
-        const { error: rpError } = await serviceClient
-          .from('role_permissions')
+      // Get role permissions
+      const { data: permissions, error: permError } = await supabaseService
+        .from('role_permissions')
+        .select('permission_id')
+        .eq('role', userData.role)
+      if (permError) throw permError
+
+      // Grant permissions
+      if (permissions?.length) {
+        await supabaseService
+          .from('user_permissions')
+          .delete()
+          .eq('user_id', userId)
+
+        const { error: rpError } = await supabaseService
+          .from('user_permissions')
           .insert(
-            permissionIds.map(permissionId => ({
-              role,
-              permission_id: permissionId
+            permissions.map(p => ({
+              user_id: userId,
+              permission_id: p.permission_id
             }))
           )
-
         if (rpError) throw rpError
       }
     }
 
     // Sign in as admin for tests
-    await supabase.auth.signInWithPassword({
+    await supabaseService.auth.signInWithPassword({
       email: TEST_USERS.admin.email,
       password: TEST_USERS.admin.password
     })
+
   } catch (error) {
     console.error('Error setting up test users:', error)
     throw error
   }
 }
 
-/**
- * Cleans up test data
- */
 export async function cleanupTestUsers() {
   try {
-    // Clean up role permissions for test roles
-    await serviceClient
-      .from('role_permissions')
-      .delete()
-      .in('role', Object.values(TEST_USER_DATA).map(u => u.role))
+    const { data: users, error } = await supabaseService.auth.admin.listUsers()
+    if (error) throw error
 
-    // Clean up profiles and delete auth users
-    for (const { id } of Object.values(TEST_USERS)) {
-      // Delete user profile
-      await serviceClient
-        .from('profiles')
-        .delete()
-        .eq('id', id)
-
-      // Delete auth user
-      await serviceClient.auth.admin.deleteUser(id)
+    for (const user of users.users) {
+      if (user.email && Object.values(TEST_USERS).some(testUser => testUser.email === user.email)) {
+        await supabaseService.auth.admin.deleteUser(user.id)
+      }
     }
-
-    console.log('Test users cleaned up')
   } catch (error) {
     console.error('Error cleaning up test users:', error)
     throw error
   }
+}
+
+export async function createTestUser(role: string = 'customer') {
+  // ... rest of the file ...
 } 

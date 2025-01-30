@@ -6,7 +6,7 @@
 import { useNavigate } from "react-router-dom"
 import { Button } from "../../components/common/button"
 import { TeamList } from "../../components/teams/TeamList"
-import { useAuth } from "../../hooks/auth/use-auth"
+import { useAuth } from "../../contexts/AuthContext"
 
 export default function TeamsPage() {
   const navigate = useNavigate()

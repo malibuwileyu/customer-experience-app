@@ -14,7 +14,7 @@ import type { Team } from "../../types/models/team.types"
 import { TeamDialog } from "../../components/teams/TeamDialog"
 import { TeamMemberDialog } from "../../components/teams/TeamMemberDialog"
 import { DeleteTeamDialog } from "../../components/teams/DeleteTeamDialog"
-import { useAuth } from "../../hooks/auth/use-auth"
+import { useAuth } from "../../contexts/AuthContext"
 
 export function TeamDetailsPage() {
   const { id } = useParams<{ id: string }>()
