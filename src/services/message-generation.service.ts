@@ -469,26 +469,10 @@ export class MessageGenerationService extends AIService {
   /**
    * Extracts referenced article IDs from the generated response
    * @param response Generated response text
-   * @returns Array of article IDs referenced in the response
+   * @returns Empty array since we no longer track article IDs
    */
-  private extractUsedArticles(response: string): string[] {
-    if (!response) return [];
-
-    // Match both "Article #" and "Article ID:" formats
-    const articleIdPattern = /(?:Article #|Article ID:)\s*([a-f0-9-]+)/g;
-    const matches = response.matchAll(articleIdPattern);
-    const articleIds = new Set<string>();
-    
-    for (const match of matches) {
-      if (match[1]) {
-        console.log('Found article ID:', match[1]);
-        articleIds.add(match[1]);
-      }
-    }
-    
-    const uniqueIds = Array.from(articleIds);
-    console.log('Extracted article IDs:', uniqueIds);
-    return uniqueIds;
+  private extractUsedArticles(): string[] {
+    return [];
   }
 
   /**
@@ -533,26 +517,17 @@ export class MessageGenerationService extends AIService {
     // Only include article content and instructions if we have valid database access
     const articleContent = context.hasValidDbAccess && context.relevantArticles?.length ? 
       context.relevantArticles?.map(article => 
-        `Article ID: ${article.id}
-        Title: ${article.title}
-        Content: ${article.content}
-        `
+        `Title: ${article.title}
+        Content: ${article.content}`
       ).join('\n\n') : 'No relevant articles found.';
 
     const criticalInstructions = context.hasValidDbAccess && context.relevantArticles?.length ? `
     CRITICAL INSTRUCTIONS FOR USING KNOWLEDGE BASE ARTICLES:
-    1. You MUST use any relevant knowledge base articles from the context to inform your response
-    2. You MUST reference ALL used articles by including their IDs in your response using this format: (Article ID: <id>)
-    3. You MUST reference articles at the point where you use their information
-    4. You MUST include at least one article reference if relevant articles are provided
-    5. You MUST NOT modify or abbreviate the article IDs - use them exactly as provided
-
-    ENHANCEMENT INSTRUCTIONS:
-    1. ELABORATE on the information from articles - don't just quote them
-    2. COMBINE information from multiple articles when relevant
-    3. PROVIDE specific examples or use cases when possible
-    4. EXPLAIN concepts in detail, especially technical terms
-    5. SYNTHESIZE information to show relationships between different articles` : '';
+    1. Use relevant knowledge base articles from the context to inform your response
+    2. Elaborate on the information - don't just quote articles
+    3. Combine information from multiple articles when relevant
+    4. Provide specific examples when possible
+    5. Explain concepts clearly, especially technical terms` : '';
 
     return `${articleContent}\n\n${criticalInstructions}`;
   }
