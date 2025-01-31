@@ -10,8 +10,6 @@ import { ChatOpenAI } from '@langchain/openai';
 import { PromptTemplate } from '@langchain/core/prompts';
 import { RunnableSequence, type Runnable } from '@langchain/core/runnables';
 import { StringOutputParser } from '@langchain/core/output_parsers';
-import { TavilySearchResults } from '@langchain/community/tools/tavily_search';
-import { supabase } from '../lib/supabase';
 
 /**
  * Error types specific to AI operations
@@ -66,7 +64,6 @@ const DEFAULT_CONFIG: AIConfig = {
  */
 export class AIService {
   private openai: ChatOpenAI;
-  private searchTool: TavilySearchResults;
   private config: AIConfig;
 
   constructor(config: Partial<AIConfig> = {}) {
@@ -98,10 +95,6 @@ export class AIService {
         temperature: this.config.temperature,
         maxTokens: this.config.maxTokens,
         streaming: this.config.streaming,
-      });
-
-      this.searchTool = new TavilySearchResults({
-        apiKey: tavilyApiKey,
       });
     } catch (error) {
       throw new AIError(

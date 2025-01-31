@@ -3,7 +3,7 @@
  * @module services/team
  */
 
-import { supabase, supabaseService } from "../lib/supabase"
+import { supabaseService } from "../lib/supabase"
 import type {
   Team,
   TeamMember,

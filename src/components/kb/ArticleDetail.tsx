@@ -5,6 +5,7 @@ import { AlertCircle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { RichTextEditor } from './RichTextEditor'
+import { Article } from '../../types/models/kb.model'
 
 interface ArticleDetailProps {
   articleId: string
@@ -16,7 +17,7 @@ export function ArticleDetail({ articleId }: ArticleDetailProps) {
   const { data: articles = [], isLoading, isError, error } = useArticles()
   const { updateArticle } = useArticleMutations()
   
-  const article = articles.find(a => a.id === articleId)
+  const article = articles.find(a => a.id === articleId) as Article | undefined
   
   const handleEdit = useCallback(() => {
     navigate(`/kb/articles/${articleId}/edit`)

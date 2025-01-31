@@ -17,7 +17,7 @@ interface DashboardLayoutProps {
 
 export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const { user, isLoading: authLoading } = useAuth()
-  const { roles, isLoading: rolesLoading } = useUserRoles(user?.id)
+  const { isLoading: rolesLoading } = useUserRoles(user?.id)
 
   // Show loading state while auth or roles are loading
   if (authLoading || rolesLoading) {

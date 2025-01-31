@@ -11,7 +11,7 @@ import { PromptTemplate } from '@langchain/core/prompts';
 import { RunnableSequence, type Runnable } from '@langchain/core/runnables';
 import { StringOutputParser } from '@langchain/core/output_parsers';
 import { AIService, AIConfig, AIError, AIErrorType } from './ai.service';
-import { supabase, supabaseService } from '../lib/supabase';
+import { supabaseService } from '../lib/supabase';
 
 /**
  * Message generation configuration

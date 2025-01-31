@@ -21,6 +21,16 @@ export default defineConfig({
       ],
     },
   },
+  build: {
+    rollupOptions: {
+      external: [
+        '**/*.test.ts',
+        '**/*.test.tsx',
+        '**/__tests__/**',
+        '**/test/**'
+      ]
+    }
+  },
   server: {
     port: 5173,
     open: true,

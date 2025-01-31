@@ -118,7 +118,7 @@ export const useTemplateStore = create<TemplateStore>()(
       archiveTemplate: async (id: string) => {
         try {
           set((state) => ({ ...state, isUpdating: true, error: null }))
-          const template = await templateService.archiveTemplate(id)
+          await templateService.archiveTemplate(id)
           set((state) => ({
             ...state,
             templates: state.templates.filter((t) => t.id !== id),

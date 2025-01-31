@@ -1,4 +1,5 @@
 /**
+ * 
  * @fileoverview Ticket service for handling ticket operations
  * @module services/ticket
  */
@@ -19,7 +20,7 @@ export interface PaginatedResponse<T> {
   count: number
 }
 
-export const ticketService = {
+export const ticketService = { 
   async createTicket(data: CreateTicketDTO): Promise<Ticket> {
     const {
       data: { user },

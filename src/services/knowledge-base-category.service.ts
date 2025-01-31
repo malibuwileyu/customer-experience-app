@@ -7,7 +7,7 @@
 
 import { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/supabase'
-import { supabase, supabaseService } from '../lib/supabase'
+import { supabaseService } from '../lib/supabase'
 
 export interface KnowledgeBaseCategory {
   id: string
